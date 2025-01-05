@@ -15,11 +15,17 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Define routes (example auth route)
-app.use("/api/auth", require("./routes/authRoutes"));
+// Define routes
+app.use("/api/auth", require("./routes/authRoutes")); // Authentication routes
+app.use("/api/foods", require("./routes/foodRoutes")); // Food routes
 
 // Custom error handler middleware
 app.use(errorHandler);
+
+// Root route for testing server status
+app.get("/", (req, res) => {
+  res.send({ message: "Welcome to the API", status: "Running" });
+});
 
 // Start the server
 app.listen(port, () =>
