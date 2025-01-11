@@ -1,4 +1,3 @@
-// controllers/foodController.js
 const asyncHandler = require("express-async-handler");
 const Food = require("../models/foodModel");
 const User = require("../models/User");
@@ -82,6 +81,65 @@ const getFoodsByOwner = asyncHandler(async (req, res) => {
   }
 });
 
+// Get foods by category
+const getFoodsByCategory = asyncHandler(async (req, res) => {
+  const { category } = req.query;
+
+  try {
+    let foods;
+    if (category) {
+      // Retrieve foods for a specific category
+      foods = await Food.find({ category }).select(
+        "foodName price imgUrl category"
+      );
+    } else {
+      // Retrieve all foods grouped by category
+      foods = await Food.find().select("foodName price imgUrl category");
+    }
+
+    if (!foods.length) {
+      return res.status(404).json({
+        message: "No foods found for this category",
+        status: 404,
+      });
+    }
+
+    // Group foods by category
+    const groupedFoods = foods.reduce((acc, food) => {
+      let categoryGroup = acc.find((group) => group.category === food.category);
+
+      if (!categoryGroup) {
+        categoryGroup = {
+          id: acc.length + 1,
+          category: food.category,
+          items: [],
+        };
+        acc.push(categoryGroup);
+      }
+
+      categoryGroup.items.push({
+        id: food._id,
+        name: food.foodName,
+        price: food.price,
+        image: food.imgUrl,
+      });
+
+      return acc;
+    }, []);
+
+    res.status(200).json({
+      message: "Foods retrieved successfully",
+      status: 200,
+      foodData: groupedFoods,
+    });
+  } catch (error) {
+    res.status(400).json({
+      message: "Failed to retrieve foods",
+      status: 400,
+    });
+  }
+});
+
 // Update food
 const updateFood = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -126,9 +184,6 @@ const deleteFood = asyncHandler(async (req, res) => {
       return res.status(400).json({ message: "Food not found", status: 400 });
     }
 
-    console.log("Food ownerID:", food.ownerID.toString()); // Log food's ownerID
-    console.log("Authenticated user ID:", req.user._id.toString()); // Log authenticated user's _id
-
     // Check if the food belongs to the authenticated user
     if (food.ownerID.toString() !== req.user._id.toString()) {
       return res
@@ -144,7 +199,6 @@ const deleteFood = asyncHandler(async (req, res) => {
       status: 200,
     });
   } catch (error) {
-    console.error(error); // Log any errors
     res.status(400).json({ message: "Failed to delete food", status: 400 });
   }
 });
@@ -153,6 +207,7 @@ module.exports = {
   createFood,
   getFoods,
   getFoodsByOwner,
+  getFoodsByCategory,
   updateFood,
   deleteFood,
 };

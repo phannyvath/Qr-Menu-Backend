@@ -16,6 +16,14 @@ const registerUser = async (req, res) => {
   const { name, gmail, password, confirmPassword } = req.body;
 
   try {
+    // Input validation
+    if (!name || !gmail || !password || !confirmPassword) {
+      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
+        message: "All fields are required",
+        statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+      });
+    }
+
     // Check if passwords match
     if (password !== confirmPassword) {
       return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
@@ -25,7 +33,7 @@ const registerUser = async (req, res) => {
     }
 
     // Check if the user already exists
-    const existingUser = await User.findOne({ gmail });
+    const existingUser = await User.findOne({ $or: [{ gmail }, { name }] });
     if (existingUser) {
       return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
         message: "User already exists",
@@ -54,7 +62,6 @@ const registerUser = async (req, res) => {
     res.status(HTTP_STATUS_CODES.OK).json({
       user: {
         name: newUser.name,
-        gmail: newUser.gmail,
         token: newUser.token,
         createdAt: newUser.createdAt,
       },
@@ -75,6 +82,13 @@ const forgotPassword = async (req, res) => {
   const { gmail, newPassword, confirmNewPassword } = req.body;
 
   try {
+    if (!gmail || !newPassword || !confirmNewPassword) {
+      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
+        message: "All fields are required",
+        statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+      });
+    }
+
     // Check if new passwords match
     if (newPassword !== confirmNewPassword) {
       return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
@@ -110,13 +124,20 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-// Login user
+// Login user with name (no Gmail)
 const loginUser = async (req, res) => {
-  const { gmail, password } = req.body;
+  const { name, password } = req.body;
 
   try {
-    // Check if the user exists
-    const user = await User.findOne({ gmail });
+    if (!name || !password) {
+      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
+        message: "All fields are required",
+        statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+      });
+    }
+
+    // Check if the user exists by name
+    const user = await User.findOne({ name });
     if (!user) {
       return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({
         message: "User not found",
@@ -141,7 +162,6 @@ const loginUser = async (req, res) => {
     res.status(HTTP_STATUS_CODES.OK).json({
       user: {
         name: user.name,
-        gmail: user.gmail,
         token: token,
       },
       message: "User logged in successfully",

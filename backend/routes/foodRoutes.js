@@ -1,4 +1,3 @@
-// routes/foodRoutes.js
 const express = require("express");
 const router = express.Router();
 const {
@@ -7,6 +6,7 @@ const {
   getFoodsByOwner,
   updateFood,
   deleteFood,
+  getFoodsByCategory, // Import the new controller
 } = require("../controllers/foodController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -18,6 +18,9 @@ router.get("/", getFoods);
 
 // Route for getting foods by a specific owner (requires authentication)
 router.get("/owner/:ownerID", protect, getFoodsByOwner);
+
+// Route for getting foods by category (no authentication required)
+router.get("/by-category", getFoodsByCategory);
 
 // Route for updating food (requires authentication)
 router.put("/:id", protect, updateFood);
