@@ -6,9 +6,9 @@ const userSchema = new mongoose.Schema(
     gmail: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     token: { type: String },
+    webID: { type: Number, required: true, unique: true }, // Add webID here
   },
   { timestamps: true } // Automatically adds createdAt and updatedAt
 );
 
 module.exports = mongoose.model("User", userSchema);
-

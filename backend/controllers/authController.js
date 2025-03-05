@@ -41,6 +41,10 @@ const registerUser = async (req, res) => {
       });
     }
 
+    // Generate WebID (count existing users and add 1)
+    const userCount = await User.countDocuments();
+    const webID = userCount + 1;
+
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -49,14 +53,15 @@ const registerUser = async (req, res) => {
       name,
       gmail,
       password: hashedPassword,
+      webID,
     });
 
     // Generate a token
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
-    newUser.token = token;
 
+    newUser.token = token;
     await newUser.save();
 
     res.status(HTTP_STATUS_CODES.OK).json({
@@ -64,6 +69,7 @@ const registerUser = async (req, res) => {
         name: newUser.name,
         token: newUser.token,
         createdAt: newUser.createdAt,
+        webID: newUser.webID,
       },
       message: "User registered successfully",
       statusCode: HTTP_STATUS_CODES.OK,
@@ -82,6 +88,7 @@ const forgotPassword = async (req, res) => {
   const { gmail, newPassword, confirmNewPassword } = req.body;
 
   try {
+    // Input validation
     if (!gmail || !newPassword || !confirmNewPassword) {
       return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
         message: "All fields are required",
@@ -129,6 +136,7 @@ const loginUser = async (req, res) => {
   const { name, password } = req.body;
 
   try {
+    // Input validation
     if (!name || !password) {
       return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
         message: "All fields are required",
@@ -163,6 +171,7 @@ const loginUser = async (req, res) => {
       user: {
         name: user.name,
         token: token,
+        webID: user.webID, // Add webID to the response
       },
       message: "User logged in successfully",
       statusCode: HTTP_STATUS_CODES.OK,
