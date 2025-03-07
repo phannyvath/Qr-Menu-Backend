@@ -1,14 +1,31 @@
 const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    gmail: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    token: { type: String },
-    webID: { type: Number, required: true, unique: true }, // Add webID here
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true, // Ensures that each username is unique
   },
-  { timestamps: true } // Automatically adds createdAt and updatedAt
-);
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  webID: {
+    type: Number,
+    unique: true,
+  },
+  token: {
+    type: String,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
 
 module.exports = mongoose.model("User", userSchema);

@@ -11,29 +11,31 @@ const HTTP_STATUS_CODES = {
   INTERNAL_SERVER_ERROR: 500,
 };
 
-// Register a new user with confirm password
+// Register a new user
 const registerUser = async (req, res) => {
-  const { name, gmail, password, confirmPassword } = req.body;
+  const { params } = req.body;
 
   try {
     // Input validation
-    if (!name || !gmail || !password || !confirmPassword) {
+    if (!params || !params.username || !params.email || !params.password) {
       return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
         message: "All fields are required",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
     }
 
-    // Check if passwords match
-    if (password !== confirmPassword) {
+    // Ensure the email is not null or undefined
+    if (!params.email || params.email === null || params.email === undefined) {
       return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
-        message: "Passwords do not match",
+        message: "Email is required",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
     }
 
     // Check if the user already exists
-    const existingUser = await User.findOne({ $or: [{ gmail }, { name }] });
+    const existingUser = await User.findOne({
+      $or: [{ email: params.email }, { username: params.username }],
+    });
     if (existingUser) {
       return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
         message: "User already exists",
@@ -46,27 +48,29 @@ const registerUser = async (req, res) => {
     const webID = userCount + 1;
 
     // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(params.password, 10);
 
     // Create a new user
     const newUser = new User({
-      name,
-      gmail,
+      username: params.username,
+      email: params.email, // Ensure email is properly passed
       password: hashedPassword,
       webID,
     });
 
-    // Generate a token
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
+    // Generate a token with webID
+    const token = jwt.sign(
+      { id: newUser._id, webID: newUser.webID },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
     newUser.token = token;
     await newUser.save();
 
     res.status(HTTP_STATUS_CODES.OK).json({
       user: {
-        name: newUser.name,
+        username: newUser.username,
         token: newUser.token,
         createdAt: newUser.createdAt,
         webID: newUser.webID,
@@ -83,28 +87,20 @@ const registerUser = async (req, res) => {
   }
 };
 
-// Forgot password with confirm new password
+// Forgot password
 const forgotPassword = async (req, res) => {
-  const { gmail, newPassword, confirmNewPassword } = req.body;
+  const { params } = req.body;
 
   try {
     // Input validation
-    if (!gmail || !newPassword || !confirmNewPassword) {
+    if (!params || !params.email || !params.newPassword) {
       return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
         message: "All fields are required",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
     }
 
-    // Check if new passwords match
-    if (newPassword !== confirmNewPassword) {
-      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
-        message: "Passwords do not match",
-        statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
-      });
-    }
-
-    const user = await User.findOne({ gmail });
+    const user = await User.findOne({ email: params.email });
     if (!user) {
       return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({
         message: "User not found",
@@ -113,7 +109,7 @@ const forgotPassword = async (req, res) => {
     }
 
     // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(params.newPassword, 10);
     user.password = hashedPassword;
 
     await user.save();
@@ -131,21 +127,21 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-// Login user with name (no Gmail)
+// Login user with params object
 const loginUser = async (req, res) => {
-  const { name, password } = req.body;
+  const { params } = req.body;
 
   try {
     // Input validation
-    if (!name || !password) {
+    if (!params || !params.username || !params.password) {
       return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
         message: "All fields are required",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
     }
 
-    // Check if the user exists by name
-    const user = await User.findOne({ name });
+    // Check if the user exists by username
+    const user = await User.findOne({ username: params.username });
     if (!user) {
       return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({
         message: "User not found",
@@ -154,7 +150,7 @@ const loginUser = async (req, res) => {
     }
 
     // Check if password matches
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(params.password, user.password);
     if (!isMatch) {
       return res.status(HTTP_STATUS_CODES.UNAUTHORIZED).json({
         message: "Invalid credentials",
@@ -162,16 +158,18 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Generate a new token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
+    // Generate a new token with webID
+    const token = jwt.sign(
+      { id: user._id, webID: user.webID },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
     res.status(HTTP_STATUS_CODES.OK).json({
       user: {
-        name: user.name,
+        username: user.username,
         token: token,
-        webID: user.webID, // Add webID to the response
+        webID: user.webID,
       },
       message: "User logged in successfully",
       statusCode: HTTP_STATUS_CODES.OK,
