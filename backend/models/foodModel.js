@@ -1,4 +1,3 @@
-// models/foodModel.js
 const mongoose = require("mongoose");
 
 const foodSchema = new mongoose.Schema(
@@ -8,11 +7,7 @@ const foodSchema = new mongoose.Schema(
     price: { type: Number, required: true },
     category: { type: String, required: true },
     imgUrl: { type: String, required: true },
-    ownerID: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    }, // Reference to User
+    webID: { type: Number, required: true }, // Replaced ownerID with webID
   },
   {
     timestamps: true,

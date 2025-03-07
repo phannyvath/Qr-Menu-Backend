@@ -6,8 +6,8 @@ const User = require("../models/User");
 const createFood = asyncHandler(async (req, res) => {
   const { foodName, description, price, category, imgUrl } = req.body;
 
-  // Use the authenticated user's ID (from token) as ownerID
-  const ownerID = req.user._id;
+  // Use the authenticated user's webID (from token)
+  const webID = req.user.webID;
 
   // Check if required fields are provided
   if (!foodName || !description || !price || !category || !imgUrl) {
@@ -17,14 +17,14 @@ const createFood = asyncHandler(async (req, res) => {
   }
 
   try {
-    // Create food
+    // Create food with webID
     const food = await Food.create({
       foodName,
       description,
       price,
       category,
       imgUrl,
-      ownerID,
+      webID,
     });
 
     res.status(200).json({
@@ -36,7 +36,7 @@ const createFood = asyncHandler(async (req, res) => {
         price: food.price,
         category: food.category,
         imgUrl: food.imgUrl,
-        ownerID: food.ownerID,
+        webID: food.webID,
         _id: food._id,
         createdAt: food.createdAt,
         updatedAt: food.updatedAt,
@@ -50,7 +50,7 @@ const createFood = asyncHandler(async (req, res) => {
 // Get all foods
 const getFoods = asyncHandler(async (req, res) => {
   try {
-    const foods = await Food.find().populate("ownerID", "name email");
+    const foods = await Food.find().populate("webID", "name email webID");
     res
       .status(200)
       .json({ message: "Foods retrieved successfully", status: 200, foods });
@@ -59,12 +59,12 @@ const getFoods = asyncHandler(async (req, res) => {
   }
 });
 
-// Get foods by authenticated owner's ID
+// Get foods by authenticated user's webID
 const getFoodsByOwner = asyncHandler(async (req, res) => {
   try {
-    const foods = await Food.find({ ownerID: req.user._id }).populate(
-      "ownerID",
-      "name email"
+    const foods = await Food.find({ webID: req.user.webID }).populate(
+      "webID",
+      "name email webID"
     );
 
     if (!foods.length) {
@@ -90,11 +90,11 @@ const getFoodsByCategory = asyncHandler(async (req, res) => {
     if (category) {
       // Retrieve foods for a specific category
       foods = await Food.find({ category }).select(
-        "foodName price imgUrl category"
+        "foodName price imgUrl category webID"
       );
     } else {
       // Retrieve all foods grouped by category
-      foods = await Food.find().select("foodName price imgUrl category");
+      foods = await Food.find().select("foodName price imgUrl category webID");
     }
 
     if (!foods.length) {
@@ -122,6 +122,7 @@ const getFoodsByCategory = asyncHandler(async (req, res) => {
         name: food.foodName,
         price: food.price,
         image: food.imgUrl,
+        webID: food.webID,
       });
 
       return acc;
@@ -152,7 +153,7 @@ const updateFood = asyncHandler(async (req, res) => {
     }
 
     // Check if the food belongs to the authenticated user
-    if (food.ownerID.toString() !== req.user._id.toString()) {
+    if (food.webID !== req.user.webID) {
       return res
         .status(400)
         .json({ message: "Not authorized to update this food", status: 400 });
@@ -185,13 +186,13 @@ const deleteFood = asyncHandler(async (req, res) => {
     }
 
     // Check if the food belongs to the authenticated user
-    if (food.ownerID.toString() !== req.user._id.toString()) {
+    if (food.webID !== req.user.webID) {
       return res
         .status(400)
         .json({ message: "Not authorized to delete this food", status: 400 });
     }
 
-    // Delete the food using findByIdAndDelete
+    // Delete the food
     await Food.findByIdAndDelete(id);
 
     res.status(200).json({
