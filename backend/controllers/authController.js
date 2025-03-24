@@ -18,7 +18,7 @@ const registerUser = async (req, res) => {
   try {
     // Input validation
     if (!params || !params.username || !params.email || !params.password) {
-      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
+      return res.status(HTTP_STATUS_CODES.OK).json({
         message: "All fields are required",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
@@ -26,7 +26,7 @@ const registerUser = async (req, res) => {
 
     // Ensure the email is not null or undefined
     if (!params.email || params.email === null || params.email === undefined) {
-      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
+      return res.status(HTTP_STATUS_CODES.OK).json({
         message: "Email is required",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
@@ -37,7 +37,7 @@ const registerUser = async (req, res) => {
       $or: [{ email: params.email }, { username: params.username }],
     });
     if (existingUser) {
-      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
+      return res.status(HTTP_STATUS_CODES.OK).json({
         message: "User already exists",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
@@ -53,7 +53,7 @@ const registerUser = async (req, res) => {
     // Create a new user
     const newUser = new User({
       username: params.username,
-      email: params.email, // Ensure email is properly passed
+      email: params.email,
       password: hashedPassword,
       webID,
     });
@@ -79,7 +79,7 @@ const registerUser = async (req, res) => {
       statusCode: HTTP_STATUS_CODES.OK,
     });
   } catch (err) {
-    res.status(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS_CODES.OK).json({
       message: "Something went wrong",
       error: err.message,
       statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
@@ -94,7 +94,7 @@ const forgotPassword = async (req, res) => {
   try {
     // Input validation
     if (!params || !params.email || !params.newPassword) {
-      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
+      return res.status(HTTP_STATUS_CODES.OK).json({
         message: "All fields are required",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
@@ -102,7 +102,7 @@ const forgotPassword = async (req, res) => {
 
     const user = await User.findOne({ email: params.email });
     if (!user) {
-      return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({
+      return res.status(HTTP_STATUS_CODES.OK).json({
         message: "User not found",
         statusCode: HTTP_STATUS_CODES.NOT_FOUND,
       });
@@ -119,7 +119,7 @@ const forgotPassword = async (req, res) => {
       statusCode: HTTP_STATUS_CODES.OK,
     });
   } catch (err) {
-    res.status(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS_CODES.OK).json({
       message: "Something went wrong",
       error: err.message,
       statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
@@ -134,7 +134,7 @@ const loginUser = async (req, res) => {
   try {
     // Input validation
     if (!params || !params.username || !params.password) {
-      return res.status(HTTP_STATUS_CODES.BAD_REQUEST).json({
+      return res.status(HTTP_STATUS_CODES.OK).json({
         message: "All fields are required",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
@@ -143,7 +143,7 @@ const loginUser = async (req, res) => {
     // Check if the user exists by username
     const user = await User.findOne({ username: params.username });
     if (!user) {
-      return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({
+      return res.status(HTTP_STATUS_CODES.OK).json({
         message: "User not found",
         statusCode: HTTP_STATUS_CODES.NOT_FOUND,
       });
@@ -152,7 +152,7 @@ const loginUser = async (req, res) => {
     // Check if password matches
     const isMatch = await bcrypt.compare(params.password, user.password);
     if (!isMatch) {
-      return res.status(HTTP_STATUS_CODES.UNAUTHORIZED).json({
+      return res.status(HTTP_STATUS_CODES.OK).json({
         message: "Invalid credentials",
         statusCode: HTTP_STATUS_CODES.UNAUTHORIZED,
       });
@@ -175,7 +175,7 @@ const loginUser = async (req, res) => {
       statusCode: HTTP_STATUS_CODES.OK,
     });
   } catch (err) {
-    res.status(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS_CODES.OK).json({
       message: "Something went wrong",
       error: err.message,
       statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
