@@ -2,7 +2,6 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
-// HTTP status codes
 const HTTP_STATUS_CODES = {
   OK: 200,
   BAD_REQUEST: 400,
@@ -16,41 +15,37 @@ const registerUser = async (req, res) => {
   const { params } = req.body;
 
   try {
-    // Input validation
     if (!params || !params.username || !params.email || !params.password) {
       return res.status(HTTP_STATUS_CODES.OK).json({
+        success: false,
         message: "All fields are required",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
     }
 
-    // Ensure the email is not null or undefined
-    if (!params.email || params.email === null || params.email === undefined) {
+    if (!params.email) {
       return res.status(HTTP_STATUS_CODES.OK).json({
+        success: false,
         message: "Email is required",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
     }
 
-    // Check if the user already exists
     const existingUser = await User.findOne({
       $or: [{ email: params.email }, { username: params.username }],
     });
     if (existingUser) {
       return res.status(HTTP_STATUS_CODES.OK).json({
+        success: false,
         message: "User already exists",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
     }
 
-    // Generate WebID (count existing users and add 1)
     const userCount = await User.countDocuments();
     const webID = userCount + 1;
-
-    // Hash the password
     const hashedPassword = await bcrypt.hash(params.password, 10);
 
-    // Create a new user
     const newUser = new User({
       username: params.username,
       email: params.email,
@@ -58,7 +53,6 @@ const registerUser = async (req, res) => {
       webID,
     });
 
-    // Generate a token with webID
     const token = jwt.sign(
       { id: newUser._id, webID: newUser.webID },
       process.env.JWT_SECRET,
@@ -69,96 +63,55 @@ const registerUser = async (req, res) => {
     await newUser.save();
 
     res.status(HTTP_STATUS_CODES.OK).json({
+      success: true,
+      message: "User registered successfully",
+      statusCode: HTTP_STATUS_CODES.OK,
       user: {
         username: newUser.username,
         token: newUser.token,
-        createdAt: newUser.createdAt,
         webID: newUser.webID,
       },
-      message: "User registered successfully",
-      statusCode: HTTP_STATUS_CODES.OK,
     });
   } catch (err) {
     res.status(HTTP_STATUS_CODES.OK).json({
-      message: "Something went wrong",
-      error: err.message,
+      success: false,
+      message: "Registration failed",
       statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
     });
   }
 };
 
-// Forgot password
-const forgotPassword = async (req, res) => {
-  const { params } = req.body;
-
-  try {
-    // Input validation
-    if (!params || !params.email || !params.newPassword) {
-      return res.status(HTTP_STATUS_CODES.OK).json({
-        message: "All fields are required",
-        statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
-      });
-    }
-
-    const user = await User.findOne({ email: params.email });
-    if (!user) {
-      return res.status(HTTP_STATUS_CODES.OK).json({
-        message: "User not found",
-        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
-      });
-    }
-
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(params.newPassword, 10);
-    user.password = hashedPassword;
-
-    await user.save();
-
-    res.status(HTTP_STATUS_CODES.OK).json({
-      message: "Password updated successfully",
-      statusCode: HTTP_STATUS_CODES.OK,
-    });
-  } catch (err) {
-    res.status(HTTP_STATUS_CODES.OK).json({
-      message: "Something went wrong",
-      error: err.message,
-      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
-    });
-  }
-};
-
-// Login user with params object
+// Login user
 const loginUser = async (req, res) => {
-  const { params } = req.body;
+  const { username, password } = req.body;
 
   try {
-    // Input validation
-    if (!params || !params.username || !params.password) {
+    if (!username || !password) {
       return res.status(HTTP_STATUS_CODES.OK).json({
-        message: "All fields are required",
+        success: false,
+        message: "Username and password are required",
         statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
       });
     }
 
-    // Check if the user exists by username
-    const user = await User.findOne({ username: params.username });
+    const user = await User.findOne({ username });
     if (!user) {
       return res.status(HTTP_STATUS_CODES.OK).json({
+        success: false,
         message: "User not found",
         statusCode: HTTP_STATUS_CODES.NOT_FOUND,
       });
     }
 
-    // Check if password matches
-    const isMatch = await bcrypt.compare(params.password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(HTTP_STATUS_CODES.OK).json({
+        success: false,
         message: "Invalid credentials",
         statusCode: HTTP_STATUS_CODES.UNAUTHORIZED,
       });
     }
 
-    // Generate a new token with webID
     const token = jwt.sign(
       { id: user._id, webID: user.webID },
       process.env.JWT_SECRET,
@@ -166,18 +119,59 @@ const loginUser = async (req, res) => {
     );
 
     res.status(HTTP_STATUS_CODES.OK).json({
+      success: true,
+      message: "Login successful",
+      statusCode: HTTP_STATUS_CODES.OK,
       user: {
         username: user.username,
         token: token,
         webID: user.webID,
       },
-      message: "User logged in successfully",
+    });
+  } catch (err) {
+    res.status(HTTP_STATUS_CODES.OK).json({
+      success: false,
+      message: "Login failed",
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+// Forgot password
+const forgotPassword = async (req, res) => {
+  const { username, newPassword } = req.body;
+
+  try {
+    if (!username || !newPassword) {
+      return res.status(HTTP_STATUS_CODES.OK).json({
+        success: false,
+        message: "Username and new password are required",
+        statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+      });
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(HTTP_STATUS_CODES.OK).json({
+        success: false,
+        message: "User not found",
+        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      success: true,
+      message: "Password updated successfully",
       statusCode: HTTP_STATUS_CODES.OK,
     });
   } catch (err) {
     res.status(HTTP_STATUS_CODES.OK).json({
-      message: "Something went wrong",
-      error: err.message,
+      success: false,
+      message: "Password update failed",
       statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
     });
   }
