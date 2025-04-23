@@ -16,7 +16,8 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "https://qr-menus.vercel.app", 
-  "http://localhost:5173"
+  "http://localhost:5173",
+  "https://nhamey.vercel.app"
   // // Allow localhost:3000
 ];
 
