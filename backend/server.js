@@ -42,6 +42,8 @@ app.use(express.urlencoded({ extended: false }));
 // Define routes
 app.use("/api/auth", require("./routes/authRoutes")); // Authentication routes
 app.use("/api/foods", require("./routes/foodRoutes")); // Food routes
+app.use("/api/features", require("./routes/featureRoutes")); // Feature routes
+
 
 // Custom error handler middleware
 app.use(errorHandler);

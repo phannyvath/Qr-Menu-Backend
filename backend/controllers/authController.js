@@ -115,7 +115,7 @@ const loginUser = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, webID: user.webID },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "7d" }  // Change from "1d" to "7d" for a week-long token
     );
 
     res.status(HTTP_STATUS_CODES.OK).json({
