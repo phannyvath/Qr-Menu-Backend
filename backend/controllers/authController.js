@@ -2,32 +2,22 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
-const HTTP_STATUS_CODES = {
-  OK: 200,
-  BAD_REQUEST: 400,
-  UNAUTHORIZED: 401,
-  NOT_FOUND: 404,
-  INTERNAL_SERVER_ERROR: 500,
-};
-
 // Register a new user
 const registerUser = async (req, res) => {
   const { params } = req.body;
 
   try {
     if (!params || !params.username || !params.email || !params.password) {
-      return res.status(HTTP_STATUS_CODES.OK).json({
+      return res.status(200).json({
         success: false,
-        message: "All fields are required",
-        statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+        message: "Invalid credentials"
       });
     }
 
     if (!params.email) {
-      return res.status(HTTP_STATUS_CODES.OK).json({
+      return res.status(200).json({
         success: false,
-        message: "Email is required",
-        statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+        message: "Invalid credentials"
       });
     }
 
@@ -35,10 +25,9 @@ const registerUser = async (req, res) => {
       $or: [{ email: params.email }, { username: params.username }],
     });
     if (existingUser) {
-      return res.status(HTTP_STATUS_CODES.OK).json({
+      return res.status(200).json({
         success: false,
-        message: "User already exists",
-        statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+        message: "Invalid credentials"
       });
     }
 
@@ -62,10 +51,9 @@ const registerUser = async (req, res) => {
     newUser.token = token;
     await newUser.save();
 
-    res.status(HTTP_STATUS_CODES.OK).json({
+    res.status(200).json({
       success: true,
       message: "User registered successfully",
-      statusCode: HTTP_STATUS_CODES.OK,
       user: {
         username: newUser.username,
         token: newUser.token,
@@ -73,10 +61,9 @@ const registerUser = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(HTTP_STATUS_CODES.OK).json({
+    res.status(200).json({
       success: false,
-      message: "Registration failed",
-      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      message: "Invalid credentials"
     });
   }
 };
@@ -87,41 +74,37 @@ const loginUser = async (req, res) => {
 
   try {
     if (!username || !password) {
-      return res.status(HTTP_STATUS_CODES.OK).json({
+      return res.status(200).json({
         success: false,
-        message: "Username and password are required",
-        statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+        message: "Invalid credentials"
       });
     }
 
     const user = await User.findOne({ username });
     if (!user) {
-      return res.status(HTTP_STATUS_CODES.OK).json({
+      return res.status(200).json({
         success: false,
-        message: "User not found",
-        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
+        message: "Invalid credentials"
       });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(HTTP_STATUS_CODES.OK).json({
+      return res.status(200).json({
         success: false,
-        message: "Invalid credentials",
-        statusCode: HTTP_STATUS_CODES.UNAUTHORIZED,
+        message: "Invalid credentials"
       });
     }
 
     const token = jwt.sign(
       { id: user._id, webID: user.webID },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }  // Change from "1d" to "7d" for a week-long token
+      { expiresIn: "7d" }
     );
 
-    res.status(HTTP_STATUS_CODES.OK).json({
+    res.status(200).json({
       success: true,
       message: "Login successful",
-      statusCode: HTTP_STATUS_CODES.OK,
       user: {
         username: user.username,
         token: token,
@@ -129,10 +112,9 @@ const loginUser = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(HTTP_STATUS_CODES.OK).json({
+    res.status(200).json({
       success: false,
-      message: "Login failed",
-      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      message: "Invalid credentials"
     });
   }
 };
@@ -143,19 +125,17 @@ const forgotPassword = async (req, res) => {
 
   try {
     if (!username || !newPassword) {
-      return res.status(HTTP_STATUS_CODES.OK).json({
+      return res.status(200).json({
         success: false,
-        message: "Username and new password are required",
-        statusCode: HTTP_STATUS_CODES.BAD_REQUEST,
+        message: "Invalid credentials"
       });
     }
 
     const user = await User.findOne({ username });
     if (!user) {
-      return res.status(HTTP_STATUS_CODES.OK).json({
+      return res.status(200).json({
         success: false,
-        message: "User not found",
-        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
+        message: "Invalid credentials"
       });
     }
 
@@ -163,16 +143,14 @@ const forgotPassword = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    res.status(HTTP_STATUS_CODES.OK).json({
+    res.status(200).json({
       success: true,
-      message: "Password updated successfully",
-      statusCode: HTTP_STATUS_CODES.OK,
+      message: "Password updated successfully"
     });
   } catch (err) {
-    res.status(HTTP_STATUS_CODES.OK).json({
+    res.status(200).json({
       success: false,
-      message: "Password update failed",
-      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      message: "Invalid credentials"
     });
   }
 };
