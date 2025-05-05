@@ -5,11 +5,11 @@ const { getAllFeatures, createFeature, updateFeature, deleteFeature } = require(
 const { protect } = require("../middleware/authMiddleware");
 
 // Public route to fetch all features
-router.get("/", getAllFeatures);
+router.post("/", getAllFeatures);
 
 // Protected routes
-router.post("/", protect, createFeature);
-router.put("/:id", protect, updateFeature);
-router.delete("/:id", protect, deleteFeature);
+router.post("/create", protect, createFeature);
+router.post("/update/:id", protect, updateFeature);
+router.post("/delete/:id", protect, deleteFeature);
 
 module.exports = router;

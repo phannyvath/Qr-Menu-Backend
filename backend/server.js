@@ -1,9 +1,9 @@
 const express = require("express");
-const colors = require("colors"); // To style console logs
-const dotenv = require("dotenv").config(); // Load environment variables
-const { errorHandler } = require("./middleware/errorMiddleware"); // Custom error handler
-const connectDB = require("./config/db"); // Database connection
-const cors = require("cors"); // Import the cors package
+const colors = require("colors");
+const dotenv = require("dotenv").config();
+const { errorHandler } = require("./middleware/errorMiddleware");
+const connectDB = require("./config/db");
+const cors = require("cors");
 const port = process.env.PORT || 5000;
 
 // Connect to the database
@@ -15,23 +15,22 @@ const app = express();
 // CORS configuration
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://qr-menus.vercel.app", 
+  "https://qr-menus.vercel.app",
   "http://localhost:5173",
   "https://nhamey.vercel.app"
-  // // Allow localhost:3000
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (allowedOrigins.includes(origin) || !origin) {
-        callback(null, true); // Allow the request
+        callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS")); // Reject the request
+        callback(new Error("Not allowed by CORS"));
       }
     },
-    methods: "GET,POST,PUT,DELETE,OPTIONS", // Allow specific HTTP methods
-    allowedHeaders: "Content-Type,Authorization", // Allow specific headers
+    methods: "GET,POST,PUT,DELETE,OPTIONS",
+    allowedHeaders: "Content-Type,Authorization",
   })
 );
 
@@ -40,10 +39,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Define routes
-app.use("/api/auth", require("./routes/authRoutes")); // Authentication routes
-app.use("/api/foods", require("./routes/foodRoutes")); // Food routes
-app.use("/api/features", require("./routes/featureRoutes")); // Feature routes
-
+app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/foods", require("./routes/foodRoutes"));
+app.use("/api/features", require("./routes/featureRoutes"));
+app.use("/api/orders", require("./routes/orderRoutes")); // Your order routes
+app.use("/api/payment", require("./routes/paymentRoutes")); // New payment routes
 
 // Custom error handler middleware
 app.use(errorHandler);
