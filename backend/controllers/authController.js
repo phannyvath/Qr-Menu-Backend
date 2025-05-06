@@ -4,7 +4,7 @@ const User = require("../models/User");
 
 // Register a new user
 const registerUser = async (req, res) => {
-  const { params } = req.body;
+  const params = req.body;
 
   try {
     if (!params || !params.username || !params.email || !params.password) {
