@@ -8,16 +8,9 @@ const registerUser = async (req, res) => {
 
   try {
     if (!params || !params.username || !params.email || !params.password) {
-      return res.status(200).json({
+      return res.status(400).json({
         success: false,
-        message: "Invalid credentials"
-      });
-    }
-
-    if (!params.email) {
-      return res.status(200).json({
-        success: false,
-        message: "Invalid credentials"
+        message: "Please provide all required fields"
       });
     }
 
@@ -25,9 +18,9 @@ const registerUser = async (req, res) => {
       $or: [{ email: params.email }, { username: params.username }],
     });
     if (existingUser) {
-      return res.status(200).json({
+      return res.status(400).json({
         success: false,
-        message: "Invalid credentials"
+        message: "Username or email already exists"
       });
     }
 
@@ -51,7 +44,7 @@ const registerUser = async (req, res) => {
     newUser.token = token;
     await newUser.save();
 
-    res.status(200).json({
+    res.status(201).json({
       success: true,
       message: "User registered successfully",
       user: {
@@ -61,9 +54,9 @@ const registerUser = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(200).json({
+    res.status(500).json({
       success: false,
-      message: "Invalid credentials"
+      message: "Server error occurred during registration"
     });
   }
 };
@@ -74,25 +67,25 @@ const loginUser = async (req, res) => {
 
   try {
     if (!username || !password) {
-      return res.status(200).json({
+      return res.status(400).json({
         success: false,
-        message: "Invalid credentials"
+        message: "Please provide username and password"
       });
     }
 
     const user = await User.findOne({ username });
     if (!user) {
-      return res.status(200).json({
+      return res.status(401).json({
         success: false,
-        message: "Invalid credentials"
+        message: "Invalid username or password"
       });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(200).json({
+      return res.status(401).json({
         success: false,
-        message: "Invalid credentials"
+        message: "Invalid username or password"
       });
     }
 
@@ -112,9 +105,9 @@ const loginUser = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(200).json({
+    res.status(500).json({
       success: false,
-      message: "Invalid credentials"
+      message: "Server error occurred during login"
     });
   }
 };
@@ -125,17 +118,17 @@ const forgotPassword = async (req, res) => {
 
   try {
     if (!username || !newPassword) {
-      return res.status(200).json({
+      return res.status(400).json({
         success: false,
-        message: "Invalid credentials"
+        message: "Please provide username and new password"
       });
     }
 
     const user = await User.findOne({ username });
     if (!user) {
-      return res.status(200).json({
+      return res.status(404).json({
         success: false,
-        message: "Invalid credentials"
+        message: "User not found"
       });
     }
 
@@ -148,9 +141,9 @@ const forgotPassword = async (req, res) => {
       message: "Password updated successfully"
     });
   } catch (err) {
-    res.status(200).json({
+    res.status(500).json({
       success: false,
-      message: "Invalid credentials"
+      message: "Server error occurred while updating password"
     });
   }
 };
