@@ -9,18 +9,21 @@ const registerUser = async (req, res) => {
   try {
     if (!params || !params.username || !params.email || !params.password) {
       return res.status(200).json({
+        statusCode: 200,
         success: false,
-        message: "Please provide all required fields"
+        message: "Please provide all required fields",
       });
     }
 
     const existingUser = await User.findOne({
       $or: [{ email: params.email }, { username: params.username }],
     });
+
     if (existingUser) {
       return res.status(200).json({
+        statusCode: 200,
         success: false,
-        message: "Username or email already exists"
+        message: "Username or email already exists",
       });
     }
 
@@ -45,6 +48,7 @@ const registerUser = async (req, res) => {
     await newUser.save();
 
     res.status(200).json({
+      statusCode: 200,
       success: true,
       message: "User registered successfully",
       user: {
@@ -55,8 +59,9 @@ const registerUser = async (req, res) => {
     });
   } catch (err) {
     res.status(200).json({
+      statusCode: 200,
       success: false,
-      message: "Server error occurred during registration"
+      message: "Server error occurred during registration",
     });
   }
 };
@@ -68,24 +73,29 @@ const loginUser = async (req, res) => {
   try {
     if (!username || !password) {
       return res.status(200).json({
+        statusCode: 200,
         success: false,
-        message: "Please provide username and password"
+        message: "Please provide username and password",
       });
     }
 
     const user = await User.findOne({ username });
+
     if (!user) {
       return res.status(200).json({
+        statusCode: 200,
         success: false,
-        message: "Invalid username or password"
+        message: "Invalid username or password",
       });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
       return res.status(200).json({
+        statusCode: 200,
         success: false,
-        message: "Invalid username or password"
+        message: "Invalid username or password",
       });
     }
 
@@ -96,6 +106,7 @@ const loginUser = async (req, res) => {
     );
 
     res.status(200).json({
+      statusCode: 200,
       success: true,
       message: "Login successful",
       user: {
@@ -106,8 +117,9 @@ const loginUser = async (req, res) => {
     });
   } catch (err) {
     res.status(200).json({
+      statusCode: 200,
       success: false,
-      message: "Server error occurred during login"
+      message: "Server error occurred during login",
     });
   }
 };
@@ -119,16 +131,19 @@ const forgotPassword = async (req, res) => {
   try {
     if (!username || !newPassword) {
       return res.status(200).json({
+        statusCode: 200,
         success: false,
-        message: "Please provide username and new password"
+        message: "Please provide username and new password",
       });
     }
 
     const user = await User.findOne({ username });
+
     if (!user) {
       return res.status(200).json({
+        statusCode: 200,
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
@@ -137,13 +152,15 @@ const forgotPassword = async (req, res) => {
     await user.save();
 
     res.status(200).json({
+      statusCode: 200,
       success: true,
-      message: "Password updated successfully"
+      message: "Password updated successfully",
     });
   } catch (err) {
     res.status(200).json({
+      statusCode: 200,
       success: false,
-      message: "Server error occurred while updating password"
+      message: "Server error occurred while updating password",
     });
   }
 };
