@@ -3,25 +3,26 @@ const Food = require("../models/foodModel");
 
 // Create new food item
 const createFood = asyncHandler(async (req, res) => {
-  const { foodName, description, price, category, imgUrl, status } = req.body;
+  const params = req.body;
   const webID = req.user.webID;
 
-  if (!foodName || !description || !price || !category || !imgUrl) {
-    return res.status(400).json({
-      success: false,
-      message: "All fields are required",
+  // Check for missing required fields
+  if (!params || !params.foodName || !params.description || !params.price || !params.category || !params.imgUrl) {
+    return res.status(200).json({
+      statusCode: 200,
+      message: "Please provide all required fields",
     });
   }
 
   try {
     const food = await Food.create({
-      foodName,
-      description,
-      price,
-      category,
-      imgUrl,
+      foodName: params.foodName,
+      description: params.description,
+      price: params.price,
+      category: params.category,
+      imgUrl: params.imgUrl,
       webID,
-      status, // Add status
+      status: params.status, // Add status
     });
 
     const foodResponse = food.toObject();
@@ -29,13 +30,13 @@ const createFood = asyncHandler(async (req, res) => {
     delete foodResponse.__v;
 
     res.status(200).json({
-      success: true,
+      statusCode: 200,
       message: "Food created successfully",
       food: foodResponse,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
+    res.status(200).json({
+      statusCode: 200,
       message: "Failed to create food",
     });
   }
@@ -46,13 +47,13 @@ const getFoods = asyncHandler(async (req, res) => {
   try {
     const foods = await Food.find().select('-webID -__v');
     res.status(200).json({
-      success: true,
+      statusCode: 200,
       message: "Foods retrieved successfully",
       foods,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
+    res.status(200).json({
+      statusCode: 200,
       message: "Failed to retrieve foods",
     });
   }
@@ -66,21 +67,21 @@ const getFoodsByOwner = asyncHandler(async (req, res) => {
     const foods = await Food.find({ webID }).select("-webID -__v");
 
     if (!foods.length) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        statusCode: 200,
         message: "No foods found for this user",
         foods: [],
       });
     }
 
     res.status(200).json({
-      success: true,
+      statusCode: 200,
       message: "Foods retrieved successfully",
       foods,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
+    res.status(200).json({
+      statusCode: 200,
       message: "Failed to retrieve foods",
     });
   }
@@ -98,8 +99,8 @@ const getFoodsByCategory = asyncHandler(async (req, res) => {
     }).select("-webID -__v");
 
     if (!foods.length) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        statusCode: 200,
         message: "No foods found",
         foodData: [],
       });
@@ -126,13 +127,13 @@ const getFoodsByCategory = asyncHandler(async (req, res) => {
     }, []);
 
     res.status(200).json({
-      success: true,
+      statusCode: 200,
       message: "Foods retrieved successfully",
       foodData: groupedFoods,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
+    res.status(200).json({
+      statusCode: 200,
       message: "Failed to retrieve foods",
       foodData: [],
     });
@@ -152,20 +153,28 @@ const updateFood = asyncHandler(async (req, res) => {
     ).select("-webID -__v");
 
     if (!food) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        statusCode: 200,
         message: "Food not found or not authorized",
       });
     }
 
     res.status(200).json({
-      success: true,
+      statusCode: 200,
       message: "Food updated successfully",
-      food,
+      food: {
+        _id: food._id,
+        foodName: food.foodName,
+        description: food.description,
+        price: food.price,
+        category: food.category,
+        imgUrl: food.imgUrl,
+        status: food.status,
+      },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
+    res.status(200).json({
+      statusCode: 200,
       message: "Failed to update food",
     });
   }
@@ -180,19 +189,19 @@ const deleteFood = asyncHandler(async (req, res) => {
     const food = await Food.findOneAndDelete({ _id: id, webID });
 
     if (!food) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        statusCode: 200,
         message: "Food not found or not authorized",
       });
     }
 
     res.status(200).json({
-      success: true,
+      statusCode: 200,
       message: "Food deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
+    res.status(200).json({
+      statusCode: 200,
       message: "Failed to delete food",
     });
   }
@@ -205,8 +214,8 @@ const updateFoodStatus = asyncHandler(async (req, res) => {
   const webID = req.user.webID;
 
   if (typeof status !== "boolean") {
-    return res.status(400).json({
-      success: false,
+    return res.status(200).json({
+      statusCode: 200,
       message: "Status must be a boolean",
     });
   }
@@ -219,20 +228,28 @@ const updateFoodStatus = asyncHandler(async (req, res) => {
     ).select("-webID -__v");
 
     if (!food) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        statusCode: 200,
         message: "Food not found or not authorized",
       });
     }
 
     res.status(200).json({
-      success: true,
+      statusCode: 200,
       message: "Food status updated successfully",
-      food,
+      food: {
+        _id: food._id,
+        foodName: food.foodName,
+        description: food.description,
+        price: food.price,
+        category: food.category,
+        imgUrl: food.imgUrl,
+        status: food.status,
+      },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
+    res.status(200).json({
+      statusCode: 200,
       message: "Failed to update food status",
     });
   }
