@@ -21,7 +21,8 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://nhamey-order.vercel.app",
   "https://nhamey.vercel.app",
-  "http://localhost:5000"
+  "http://localhost:5000",
+  "https://qr-menu-backend-hxlj.onrender.com"
 ];
 
 app.use(
