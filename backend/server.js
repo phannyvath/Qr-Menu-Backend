@@ -18,7 +18,7 @@ const allowedOrigins = [
   "https://qr-menus.vercel.app",
   "http://localhost:5173",
   "https://nhamey-order.vercel.app",
-  "https://nhamey.vercel.app/"
+  "https://nhamey.vercel.app"
 ];
 
 app.use(
