@@ -7,7 +7,10 @@ const createFood = asyncHandler(async (req, res) => {
   const webID = req.user.webID;
 
   if (!foodName || !description || !price || !category || !imgUrl) {
-    return res.status(400).json({ message: "Please provide all required fields" });
+    return res.status(200).json({
+      statuscode: 200,
+      message: "Please provide all required fields",
+    });
   }
 
   const food = await Food.create({
@@ -24,7 +27,8 @@ const createFood = asyncHandler(async (req, res) => {
   delete foodResponse.webID;
   delete foodResponse.__v;
 
-  res.status(201).json({
+  res.status(200).json({
+    statuscode: 200,
     message: "Food created successfully",
     food: foodResponse,
   });
@@ -35,6 +39,7 @@ const getFoods = asyncHandler(async (req, res) => {
   const foods = await Food.find().select("-webID -__v");
 
   res.status(200).json({
+    statuscode: 200,
     message: "Foods retrieved successfully",
     foods,
   });
@@ -47,6 +52,7 @@ const getFoodsByOwner = asyncHandler(async (req, res) => {
   const foods = await Food.find({ webID }).select("-webID -__v");
 
   res.status(200).json({
+    statuscode: 200,
     message: foods.length ? "Foods retrieved successfully" : "No foods found for this user",
     foods,
   });
@@ -57,7 +63,11 @@ const getFoodsByWebID = asyncHandler(async (req, res) => {
   const { webId } = req.body;
 
   if (!webId) {
-    return res.status(400).json({ message: "webId is required", foodData: [] });
+    return res.status(200).json({
+      statuscode: 200,
+      message: "webId is required",
+      foodData: [],
+    });
   }
 
   const foods = await Food.find({ webID: webId }).select("-webID -__v");
@@ -83,6 +93,7 @@ const getFoodsByWebID = asyncHandler(async (req, res) => {
   }, []);
 
   res.status(200).json({
+    statuscode: 200,
     message: "Foods retrieved successfully",
     foodData: groupedFoods,
   });
@@ -95,7 +106,10 @@ const updateFoodStatus = asyncHandler(async (req, res) => {
   const webID = req.user.webID;
 
   if (typeof status !== "boolean") {
-    return res.status(400).json({ message: "Status must be a boolean" });
+    return res.status(200).json({
+      statuscode: 200,
+      message: "Status must be a boolean",
+    });
   }
 
   const food = await Food.findOneAndUpdate(
@@ -105,16 +119,20 @@ const updateFoodStatus = asyncHandler(async (req, res) => {
   ).select("-webID -__v");
 
   if (!food) {
-    return res.status(404).json({ message: "Food not found or not authorized" });
+    return res.status(200).json({
+      statuscode: 200,
+      message: "Food not found or not authorized",
+    });
   }
 
   res.status(200).json({
+    statuscode: 200,
     message: "Food status updated successfully",
     food,
   });
 });
 
-// Optional: update food details
+// Update food details
 const updateFood = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const webID = req.user.webID;
@@ -127,16 +145,20 @@ const updateFood = asyncHandler(async (req, res) => {
   ).select("-webID -__v");
 
   if (!food) {
-    return res.status(404).json({ message: "Food not found or not authorized" });
+    return res.status(200).json({
+      statuscode: 200,
+      message: "Food not found or not authorized",
+    });
   }
 
   res.status(200).json({
+    statuscode: 200,
     message: "Food updated successfully",
     food,
   });
 });
 
-// Optional: delete a food item
+// Delete a food item
 const deleteFood = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const webID = req.user.webID;
@@ -144,10 +166,16 @@ const deleteFood = asyncHandler(async (req, res) => {
   const food = await Food.findOneAndDelete({ _id: id, webID });
 
   if (!food) {
-    return res.status(404).json({ message: "Food not found or not authorized" });
+    return res.status(200).json({
+      statuscode: 200,
+      message: "Food not found or not authorized",
+    });
   }
 
-  res.status(200).json({ message: "Food deleted successfully" });
+  res.status(200).json({
+    statuscode: 200,
+    message: "Food deleted successfully",
+  });
 });
 
 module.exports = {
