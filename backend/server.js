@@ -5,6 +5,8 @@ const { errorHandler } = require("./middleware/errorMiddleware");
 const connectDB = require("./config/db");
 const cors = require("cors");
 const port = process.env.PORT || 5000;
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 // Connect to the database
 connectDB();
@@ -18,7 +20,8 @@ const allowedOrigins = [
   "https://qr-menus.vercel.app",
   "http://localhost:5173",
   "https://nhamey-order.vercel.app",
-  "https://nhamey.vercel.app"
+  "https://nhamey.vercel.app",
+  "http://localhost:5000"
 ];
 
 app.use(
@@ -56,6 +59,36 @@ app.use(errorHandler);
 app.get("/", (req, res) => {
   res.send({ message: "Welcome to the API", status: "Running" });
 });
+
+// Swagger definition
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'QR Menu API',
+      version: '1.0.0',
+      description: 'API documentation for QR Menu Backend',
+    },
+    servers: [
+      { url: process.env.BASE_URL || 'http://localhost:' + port },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [{ bearerAuth: [] }],
+  },
+  apis: ['./backend/routes/*.js'], // Path to the API docs
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Start the server
 app.listen(port, () =>
