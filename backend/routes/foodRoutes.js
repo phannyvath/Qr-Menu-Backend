@@ -15,7 +15,6 @@ const { protect } = require("../middleware/authMiddleware");
  * @swagger
  * /api/foods:
  *   post:
- *     summary: Create a new food item
  *     tags: [Foods]
  *     security:
  *       - bearerAuth: []
@@ -29,7 +28,6 @@ const { protect } = require("../middleware/authMiddleware");
  *       201:
  *         description: Food created
  *   get:
- *     summary: Get all foods
  *     tags: [Foods]
  *     responses:
  *       200:
@@ -43,7 +41,6 @@ router.get("/", getFoods);
  * @swagger
  * /api/foods/owner:
  *   get:
- *     summary: Get foods by owner
  *     tags: [Foods]
  *     security:
  *       - bearerAuth: []
@@ -57,7 +54,6 @@ router.get("/owner", protect, getFoodsByOwner);
  * @swagger
  * /api/foods/by-webid:
  *   post:
- *     summary: Get foods by web ID
  *     tags: [Foods]
  *     requestBody:
  *       required: true
@@ -75,7 +71,6 @@ router.post("/by-webid", getFoodsByWebID);
  * @swagger
  * /api/foods/status/{id}:
  *   patch:
- *     summary: Update food status
  *     tags: [Foods]
  *     security:
  *       - bearerAuth: []
@@ -101,7 +96,6 @@ router.patch("/status/:id", protect, updateFoodStatus);
  * @swagger
  * /api/foods/{id}:
  *   put:
- *     summary: Update a food item
  *     tags: [Foods]
  *     security:
  *       - bearerAuth: []
@@ -121,7 +115,6 @@ router.patch("/status/:id", protect, updateFoodStatus);
  *       200:
  *         description: Food updated
  *   delete:
- *     summary: Delete a food item
  *     tags: [Foods]
  *     security:
  *       - bearerAuth: []

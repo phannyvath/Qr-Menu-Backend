@@ -12,7 +12,6 @@ const { protect } = require("../middleware/authMiddleware"); // your existing au
  * @swagger
  * /api/orders/guest:
  *   post:
- *     summary: Create a guest order
  *     tags: [Orders]
  *     requestBody:
  *       required: true
@@ -31,7 +30,6 @@ router.post("/guest", createGuestOrder);
  * @swagger
  * /api/orders/seller:
  *   post:
- *     summary: Get orders by seller
  *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
@@ -53,7 +51,6 @@ router.post("/verify/:orderCode", protect, verifyOrderByCode);
  * @swagger
  * /api/orders/verify/{orderCode}:
  *   post:
- *     summary: Verify order by code
  *     tags: [Orders]
  *     security:
  *       - bearerAuth: []

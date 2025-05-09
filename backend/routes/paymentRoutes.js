@@ -6,7 +6,6 @@ const { createPayment, confirmPayment } = require("../controllers/paymentControl
  * @swagger
  * /api/payment/create:
  *   post:
- *     summary: Initiate a payment
  *     tags: [Payment]
  *     requestBody:
  *       required: true
@@ -24,7 +23,6 @@ router.post("/create", createPayment); // Route to initiate payment
  * @swagger
  * /api/payment/confirm:
  *   post:
- *     summary: Confirm payment status
  *     tags: [Payment]
  *     requestBody:
  *       required: true

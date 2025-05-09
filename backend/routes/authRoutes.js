@@ -9,7 +9,6 @@ console.log(registerUser, loginUser, forgotPassword);  // Add this to debug
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Register a new user
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -37,7 +36,6 @@ router.post('/register', registerUser);
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: Login a user
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -63,7 +61,6 @@ router.post('/login', loginUser);
  * @swagger
  * /api/auth/forgot-password:
  *   post:
- *     summary: Forgot password
  *     tags: [Auth]
  *     requestBody:
  *       required: true

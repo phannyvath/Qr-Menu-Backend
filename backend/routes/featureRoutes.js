@@ -8,7 +8,6 @@ const { protect } = require("../middleware/authMiddleware");
  * @swagger
  * /api/features:
  *   post:
- *     summary: Get all features
  *     tags: [Features]
  *     responses:
  *       200:
@@ -21,7 +20,6 @@ router.post("/", getAllFeatures);
  * @swagger
  * /api/features/create:
  *   post:
- *     summary: Create a new feature
  *     tags: [Features]
  *     security:
  *       - bearerAuth: []
@@ -44,7 +42,6 @@ router.post("/delete/:id", protect, deleteFeature);
  * @swagger
  * /api/features/update/{id}:
  *   post:
- *     summary: Update a feature
  *     tags: [Features]
  *     security:
  *       - bearerAuth: []
@@ -68,7 +65,6 @@ router.post("/delete/:id", protect, deleteFeature);
  * @swagger
  * /api/features/delete/{id}:
  *   post:
- *     summary: Delete a feature
  *     tags: [Features]
  *     security:
  *       - bearerAuth: []
