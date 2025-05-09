@@ -89,12 +89,11 @@ const getFoodsByOwner = asyncHandler(async (req, res) => {
 
 // Get foods by category
 const getFoodsByCategory = asyncHandler(async (req, res) => {
-  const { category } = req.query;
-  const webID = req.user.webID;
+  const params = req.body;
 
   try {
     let foods = await Food.find({
-      webID,
+      webID: params.webID,
       ...(category && { category }),
     }).select("-webID -__v");
 
