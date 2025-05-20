@@ -13,11 +13,11 @@ const { protect } = require("../middleware/authMiddleware");
 
 // Protected routes
 router.post("/", protect, createFood);
-router.get("/", getFoods);
-router.get("/owner", protect, getFoodsByOwner);
+router.post("/", getFoods);
+router.post("/owner", protect, getFoodsByOwner);
 router.post("/by-webid", getFoodsByWebID);
-router.patch("/status/:id", protect, updateFoodStatus);
-router.put("/:id", protect, updateFood);
-router.delete("/:id", protect, deleteFood);
+router.post("/status/:id", protect, updateFoodStatus);
+router.post("/:id", protect, updateFood);
+router.post("/:id", protect, deleteFood);
 
 module.exports = router;
