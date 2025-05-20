@@ -8,7 +8,7 @@ const createFood = asyncHandler(async (req, res) => {
 
   if (!foodName || !description || !price || !category || !imgUrl) {
     return res.status(200).json({
-      statuscode: 200,
+      statusCode: 200,
       message: "Please provide all required fields",
     });
   }
@@ -28,7 +28,7 @@ const createFood = asyncHandler(async (req, res) => {
   delete foodResponse.__v;
 
   res.status(200).json({
-    statuscode: 200,
+    statusCode: 200,
     message: "Food created successfully",
     food: foodResponse,
   });
@@ -39,7 +39,7 @@ const getFoods = asyncHandler(async (req, res) => {
   const foods = await Food.find().select("-webID -__v");
 
   res.status(200).json({
-    statuscode: 200,
+    statusCode: 200,
     message: "Foods retrieved successfully",
     foods,
   });
@@ -52,7 +52,7 @@ const getFoodsByOwner = asyncHandler(async (req, res) => {
   const foods = await Food.find({ webID }).select("-webID -__v");
 
   res.status(200).json({
-    statuscode: 200,
+    statusCode: 200,
     message: foods.length ? "Foods retrieved successfully" : "No foods found for this user",
     foods,
   });
@@ -64,7 +64,7 @@ const getFoodsByWebID = asyncHandler(async (req, res) => {
 
   if (!webId) {
     return res.status(200).json({
-      statuscode: 200,
+      statusCode: 200,
       message: "webId is required",
       foodData: [],
     });
@@ -93,7 +93,7 @@ const getFoodsByWebID = asyncHandler(async (req, res) => {
   }, []);
 
   res.status(200).json({
-    statuscode: 200,
+    statusCode: 200,
     message: "Foods retrieved successfully",
     foodData: groupedFoods,
   });
@@ -107,7 +107,7 @@ const updateFoodStatus = asyncHandler(async (req, res) => {
 
   if (typeof status !== "boolean") {
     return res.status(200).json({
-      statuscode: 200,
+      statusCode: 200,
       message: "Status must be a boolean",
     });
   }
@@ -120,13 +120,13 @@ const updateFoodStatus = asyncHandler(async (req, res) => {
 
   if (!food) {
     return res.status(200).json({
-      statuscode: 200,
+      statusCode: 200,
       message: "Food not found or not authorized",
     });
   }
 
   res.status(200).json({
-    statuscode: 200,
+    statusCode: 200,
     message: "Food status updated successfully",
     food,
   });
@@ -146,13 +146,13 @@ const updateFood = asyncHandler(async (req, res) => {
 
   if (!food) {
     return res.status(200).json({
-      statuscode: 200,
+      statusCode: 200,
       message: "Food not found or not authorized",
     });
   }
 
   res.status(200).json({
-    statuscode: 200,
+    statusCode: 200,
     message: "Food updated successfully",
     food,
   });
@@ -167,13 +167,13 @@ const deleteFood = asyncHandler(async (req, res) => {
 
   if (!food) {
     return res.status(200).json({
-      statuscode: 200,
+      statusCode: 200,
       message: "Food not found or not authorized",
     });
   }
 
   res.status(200).json({
-    statuscode: 200,
+    statusCode: 200,
     message: "Food deleted successfully",
   });
 });
