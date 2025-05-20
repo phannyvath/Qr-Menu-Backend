@@ -1,6 +1,5 @@
 const asyncHandler = require("express-async-handler");
 const Order = require("../models/orderModel");
-const { nanoid } = require("nanoid"); // to generate unique orderCode
 
 // Guest places order
 const createGuestOrder = asyncHandler(async (req, res) => {
@@ -13,6 +12,7 @@ const createGuestOrder = asyncHandler(async (req, res) => {
     });
   }
 
+  const { nanoid } = await import('nanoid');
   const orderCode = nanoid(8);
 
   const newOrder = await Order.create({
