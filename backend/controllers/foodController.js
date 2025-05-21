@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const Food = require("../models/foodModel");
+const Category = require("../models/categoryModel"); // <-- Added
 
 // Create a new food item
 const createFood = asyncHandler(async (req, res) => {
@@ -13,11 +14,20 @@ const createFood = asyncHandler(async (req, res) => {
     });
   }
 
+  // ✅ Check that category exists for this user
+  const categoryExists = await Category.findOne({ name: category, webID });
+  if (!categoryExists) {
+    return res.status(200).json({
+      statusCode: 200,
+      message: "Invalid category. Please select a valid one from the list.",
+    });
+  }
+
   const food = await Food.create({
     foodName,
     description,
     price,
-    category,
+    category, // still stored as a string
     imgUrl,
     webID,
     status,

@@ -1,35 +1,31 @@
-// middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+const asyncHandler = require("express-async-handler");
 
-const protect = async (req, res, next) => {
+const protect = asyncHandler(async (req, res, next) => {
   let token;
 
-  // Check if there's a token in the Authorization header
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
   ) {
     try {
-      // Get token from header
       token = req.headers.authorization.split(" ")[1];
 
-      // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Get the user from the token
-      req.user = await User.findById(decoded.id).select("-password");
+      // 👇 This must match what you include in jwt.sign() during login
+      req.user = decoded;
 
-      next(); // Proceed to the next middleware/controller
+      console.log("req.user:", req.user); // ✅ Useful debug log
+      next();
     } catch (error) {
-      console.error(error);
+      console.error("Token verification failed:", error.message);
       res.status(401).json({ message: "Not authorized, token failed" });
     }
-  }
-
-  if (!token) {
+  } else {
+    console.warn("No Authorization header found");
     res.status(401).json({ message: "Not authorized, no token" });
   }
-};
+});
 
 module.exports = { protect };
