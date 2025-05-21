@@ -165,4 +165,29 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, forgotPassword };
+// Get all users
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}, '-password -__v');
+    res.status(200).json({
+      statusCode: 200,
+      success: true,
+      message: 'Users retrieved successfully',
+      users: users.map(user => ({
+        username: user.username,
+        email: user.email,
+        webID: user.webID,
+        token: user.token,
+        createdAt: user.createdAt
+      }))
+    });
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      success: false,
+      message: 'Server error occurred while retrieving users',
+    });
+  }
+};
+
+module.exports = { registerUser, loginUser, forgotPassword, getAllUsers };

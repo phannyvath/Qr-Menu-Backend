@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser, forgotPassword } = require('../controllers/authController');
+const { registerUser, loginUser, forgotPassword, getAllUsers } = require('../controllers/authController');
 
 // Check if the imported functions are valid
 console.log(registerUser, loginUser, forgotPassword);  // Add this to debug
@@ -79,5 +79,16 @@ router.post('/login', loginUser);
  */
 // Forgot password route
 router.post('/forgot-password', forgotPassword);
+
+/**
+ * @swagger
+ * /api/auth/users:
+ *   get:
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: List of all users
+ */
+router.post('/users', getAllUsers);
 
 module.exports = router;
