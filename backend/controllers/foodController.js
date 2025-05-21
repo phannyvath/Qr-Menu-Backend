@@ -88,6 +88,9 @@ const getFoodsByWebID = asyncHandler(async (req, res) => {
       description: food.description,
       price: food.price,
       image: food.imgUrl,
+      status: food.status,
+      createdAt: food.createdAt,
+      updatedAt: food.updatedAt,
     });
     return acc;
   }, []);
