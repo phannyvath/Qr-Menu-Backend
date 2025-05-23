@@ -3,7 +3,7 @@ const Category = require("../models/categoryModel");
 
 // Create a new category
 const createCategory = asyncHandler(async (req, res) => {
-  const { categoryName } = req.body;
+  const { categoryName, status } = req.body;
   const webID = req.user.webID;
 
   if (!categoryName) {
@@ -21,7 +21,11 @@ const createCategory = asyncHandler(async (req, res) => {
     });
   }
 
-  const category = await Category.create({ categoryName: categoryName.trim(), webID });
+  const category = await Category.create({
+    categoryName: categoryName.trim(),
+    webID,
+    status: typeof status === "boolean" ? status : true,
+  });
 
   const categoryResponse = category.toObject();
   delete categoryResponse.webID;
@@ -34,7 +38,7 @@ const createCategory = asyncHandler(async (req, res) => {
   });
 });
 
-// Get all categories by user
+// Get all categories by authenticated user
 const getCategories = asyncHandler(async (req, res) => {
   const webID = req.user.webID;
 
@@ -81,8 +85,48 @@ const deleteCategory = asyncHandler(async (req, res) => {
   });
 });
 
+// Update category status by payload
+const updateCategoryStatus = asyncHandler(async (req, res) => {
+  const { categoryId, status } = req.body;
+  const webID = req.user.webID;
+
+  if (!categoryId) {
+    return res.status(200).json({
+      statusCode: 201,
+      message: "categoryId is required",
+    });
+  }
+
+  if (typeof status !== "boolean") {
+    return res.status(200).json({
+      statusCode: 201,
+      message: "Status must be a boolean",
+    });
+  }
+
+  const category = await Category.findOneAndUpdate(
+    { _id: categoryId, webID },
+    { status },
+    { new: true }
+  ).select("-webID -__v");
+
+  if (!category) {
+    return res.status(200).json({
+      statusCode: 201,
+      message: "Category not found or not authorized",
+    });
+  }
+
+  res.status(200).json({
+    statusCode: 200,
+    message: "Category status updated successfully",
+    category,
+  });
+});
+
 module.exports = {
   createCategory,
   getCategories,
   deleteCategory,
+  updateCategoryStatus,
 };

@@ -8,8 +8,12 @@ const categorySchema = new mongoose.Schema(
       trim: true,
     },
     webID: {
-      type: String, // or Number based on your usage
+      type: String,
       required: true,
+    },
+    status: {
+      type: Boolean,
+      default: true,
     },
   },
   {
