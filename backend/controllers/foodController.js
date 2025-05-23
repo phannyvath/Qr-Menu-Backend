@@ -9,7 +9,7 @@ const createFood = asyncHandler(async (req, res) => {
 
   if (!foodName || !description || !price || !category || !imgUrl) {
     return res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       message: "Please provide all required fields",
     });
   }
@@ -17,7 +17,7 @@ const createFood = asyncHandler(async (req, res) => {
   const categoryExists = await Category.findOne({ categoryName: category, webID });
   if (!categoryExists) {
     return res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       message: "Invalid category. Please select a valid one from the list.",
     });
   }
@@ -54,10 +54,9 @@ const getFoods = asyncHandler(async (req, res) => {
   });
 });
 
-// Get foods by owner (authenticated user)
+// Get foods by authenticated user
 const getFoodsByOwner = asyncHandler(async (req, res) => {
   const webID = req.user.webID;
-
   const foods = await Food.find({ webID }).select("-webID -__v");
 
   res.status(200).json({
@@ -67,13 +66,13 @@ const getFoodsByOwner = asyncHandler(async (req, res) => {
   });
 });
 
-// Get foods by webID (e.g. for public menu)
+// Get foods by webID
 const getFoodsByWebID = asyncHandler(async (req, res) => {
   const { webId } = req.body;
 
   if (!webId) {
     return res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       message: "webId is required",
       foodData: [],
     });
@@ -111,60 +110,23 @@ const getFoodsByWebID = asyncHandler(async (req, res) => {
   });
 });
 
-// Update food status (still using URL param `:id`)
-const updateFoodStatus = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  const webID = req.user.webID;
-
-  if (typeof status !== "boolean") {
-    return res.status(200).json({
-      statusCode: 200,
-      message: "Status must be a boolean",
-    });
-  }
-
-  const food = await Food.findOneAndUpdate(
-    { _id: id, webID },
-    { status },
-    { new: true }
-  ).select("-webID -__v");
-
-  if (!food) {
-    return res.status(200).json({
-      statusCode: 200,
-      message: "Food not found or not authorized",
-    });
-  }
-
-  res.status(200).json({
-    statusCode: 200,
-    message: "Food status updated successfully",
-    food,
-  });
-});
-
-// Update food (using payload)
+// Update food (by payload)
 const updateFood = asyncHandler(async (req, res) => {
   const { foodId, ...updates } = req.body;
   const webID = req.user.webID;
 
   if (!foodId) {
     return res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       message: "foodId is required",
     });
   }
 
-  const food = await Food.findOneAndUpdate(
-    { _id: foodId, webID },
-    updates,
-    { new: true }
-  ).select("-webID -__v");
+  const food = await Food.findOneAndUpdate({ _id: foodId, webID }, updates, { new: true }).select("-webID -__v");
 
   if (!food) {
     return res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       message: "Food not found or not authorized",
     });
   }
@@ -176,14 +138,49 @@ const updateFood = asyncHandler(async (req, res) => {
   });
 });
 
-// Delete a food item (using payload)
+// Update food status (by payload)
+const updateFoodStatus = asyncHandler(async (req, res) => {
+  const { foodId, status } = req.body;
+  const webID = req.user.webID;
+
+  if (!foodId) {
+    return res.status(200).json({
+      statusCode: 201,
+      message: "foodId is required",
+    });
+  }
+
+  if (typeof status !== "boolean") {
+    return res.status(200).json({
+      statusCode: 201,
+      message: "Status must be a boolean",
+    });
+  }
+
+  const food = await Food.findOneAndUpdate({ _id: foodId, webID }, { status }, { new: true }).select("-webID -__v");
+
+  if (!food) {
+    return res.status(200).json({
+      statusCode: 201,
+      message: "Food not found or not authorized",
+    });
+  }
+
+  res.status(200).json({
+    statusCode: 200,
+    message: "Food status updated successfully",
+    food,
+  });
+});
+
+// Delete food (by payload)
 const deleteFood = asyncHandler(async (req, res) => {
   const { foodId } = req.body;
   const webID = req.user.webID;
 
   if (!foodId) {
     return res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       message: "foodId is required",
     });
   }
@@ -192,7 +189,7 @@ const deleteFood = asyncHandler(async (req, res) => {
 
   if (!food) {
     return res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       message: "Food not found or not authorized",
     });
   }
@@ -208,7 +205,7 @@ module.exports = {
   getFoods,
   getFoodsByOwner,
   getFoodsByWebID,
-  updateFoodStatus,
   updateFood,
+  updateFoodStatus,
   deleteFood,
 };

@@ -5,41 +5,23 @@ const {
   getFoods,
   getFoodsByOwner,
   getFoodsByWebID,
-  updateFoodStatus,
   updateFood,
+  updateFoodStatus,
   deleteFood,
 } = require("../controllers/foodController");
 const { protect } = require("../middleware/authMiddleware");
 
-/**
- * @swagger
- * /api/foods:
- *   post:
- *     tags: [Foods]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *     responses:
- *       201:
- *         description: Food created
- *   get:
- *     tags: [Foods]
- *     responses:
- *       200:
- *         description: List of foods
- */
-// Protected routes
+// Create and list foods
 router.post("/", protect, createFood);
-router.post("/", getFoods);
+router.get("/", getFoods);
+
+// Owner & public view
 router.post("/owner", protect, getFoodsByOwner);
 router.post("/by-webid", getFoodsByWebID);
-router.post("/status/:id", protect, updateFoodStatus);
-router.post("/:id", protect, updateFood);
-router.post("/:id", protect, deleteFood);
+
+// Update operations via payload
+router.post("/update", protect, updateFood);
+router.post("/status", protect, updateFoodStatus);
+router.post("/delete", protect, deleteFood);
 
 module.exports = router;
