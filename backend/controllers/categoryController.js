@@ -13,7 +13,6 @@ const createCategory = asyncHandler(async (req, res) => {
     });
   }
 
-  // Check if category already exists
   const existing = await Category.findOne({ categoryName: categoryName.trim(), webID });
   if (existing) {
     return res.status(200).json({
@@ -48,12 +47,19 @@ const getCategories = asyncHandler(async (req, res) => {
   });
 });
 
-// Delete a category
+// Delete category using payload
 const deleteCategory = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { categoryId } = req.body;
   const webID = req.user.webID;
 
-  const category = await Category.findOneAndDelete({ _id: id, webID });
+  if (!categoryId) {
+    return res.status(200).json({
+      statusCode: 200,
+      message: "categoryId is required",
+    });
+  }
+
+  const category = await Category.findOneAndDelete({ _id: categoryId, webID });
 
   if (!category) {
     return res.status(200).json({
