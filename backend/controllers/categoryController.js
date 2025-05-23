@@ -58,7 +58,7 @@ const getCategories = asyncHandler(async (req, res) => {
   });
 });
 
-// Delete a category by payload
+// Delete category by payload
 const deleteCategory = asyncHandler(async (req, res) => {
   const { categoryId } = req.body;
   const webID = req.user.webID;
@@ -124,9 +124,46 @@ const updateCategoryStatus = asyncHandler(async (req, res) => {
   });
 });
 
+// Update category details by payload
+const updateCategory = asyncHandler(async (req, res) => {
+  const { categoryId, categoryName, status } = req.body;
+  const webID = req.user.webID;
+
+  if (!categoryId) {
+    return res.status(200).json({
+      statusCode: 201,
+      message: "categoryId is required",
+    });
+  }
+
+  const updates = {};
+  if (categoryName) updates.categoryName = categoryName.trim();
+  if (typeof status === "boolean") updates.status = status;
+
+  const category = await Category.findOneAndUpdate(
+    { _id: categoryId, webID },
+    updates,
+    { new: true }
+  ).select("-webID -__v");
+
+  if (!category) {
+    return res.status(200).json({
+      statusCode: 201,
+      message: "Category not found or not authorized",
+    });
+  }
+
+  res.status(200).json({
+    statusCode: 200,
+    message: "Category updated successfully",
+    category,
+  });
+});
+
 module.exports = {
   createCategory,
   getCategories,
   deleteCategory,
   updateCategoryStatus,
+  updateCategory,
 };
