@@ -13,7 +13,7 @@ const { protect } = require("../middleware/authMiddleware");
 router.post("/", protect, createCategory);
 
 // Get categories
-router.get("/", protect, getCategories);
+router.post("/", protect, getCategories);
 
 // Update category details
 router.post("/update", protect, updateCategory);
