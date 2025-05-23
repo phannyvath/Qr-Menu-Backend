@@ -52,7 +52,7 @@ app.use("/api/foods", require("./routes/foodRoutes"));
 app.use("/api/features", require("./routes/featureRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes")); // Your order routes
 app.use("/api/payment", require("./routes/paymentRoutes")); // New payment routes
-app.use("/api/category", require("./routes/categoryRoutes")); // ✅ Add this line
+app.use("/api/categories", require("./routes/categoryRoutes")); // ✅ Add this line
 
 
 // Custom error handler middleware
