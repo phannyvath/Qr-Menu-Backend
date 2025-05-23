@@ -1,6 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const Food = require("../models/foodModel");
-const Category = require("../models/categoryModel"); // <-- Added
+const Category = require("../models/categoryModel");
 
 // Create a new food item
 const createFood = asyncHandler(async (req, res) => {
@@ -14,7 +14,6 @@ const createFood = asyncHandler(async (req, res) => {
     });
   }
 
-  // ✅ Check that category exists for this user
   const categoryExists = await Category.findOne({ categoryName: category, webID });
   if (!categoryExists) {
     return res.status(200).json({
@@ -27,7 +26,7 @@ const createFood = asyncHandler(async (req, res) => {
     foodName,
     description,
     price,
-    category, // still stored as a string
+    category,
     imgUrl,
     webID,
     status,
@@ -112,7 +111,7 @@ const getFoodsByWebID = asyncHandler(async (req, res) => {
   });
 });
 
-// Update food status
+// Update food status (still using URL param `:id`)
 const updateFoodStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -145,14 +144,20 @@ const updateFoodStatus = asyncHandler(async (req, res) => {
   });
 });
 
-// Update food details
+// Update food (using payload)
 const updateFood = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { foodId, ...updates } = req.body;
   const webID = req.user.webID;
-  const updates = req.body;
+
+  if (!foodId) {
+    return res.status(200).json({
+      statusCode: 200,
+      message: "foodId is required",
+    });
+  }
 
   const food = await Food.findOneAndUpdate(
-    { _id: id, webID },
+    { _id: foodId, webID },
     updates,
     { new: true }
   ).select("-webID -__v");
@@ -171,12 +176,19 @@ const updateFood = asyncHandler(async (req, res) => {
   });
 });
 
-// Delete a food item
+// Delete a food item (using payload)
 const deleteFood = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { foodId } = req.body;
   const webID = req.user.webID;
 
-  const food = await Food.findOneAndDelete({ _id: id, webID });
+  if (!foodId) {
+    return res.status(200).json({
+      statusCode: 200,
+      message: "foodId is required",
+    });
+  }
+
+  const food = await Food.findOneAndDelete({ _id: foodId, webID });
 
   if (!food) {
     return res.status(200).json({
