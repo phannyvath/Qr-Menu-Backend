@@ -175,10 +175,7 @@ const getAllUsers = async (req, res) => {
       message: 'Users retrieved successfully',
       users: users.map(user => ({
         username: user.username,
-        email: user.email,
         webID: user.webID,
-        token: user.token,
-        createdAt: user.createdAt
       }))
     });
   } catch (err) {

@@ -1,7 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Category = require("../models/categoryModel");
 
-// Create new category
+// Create a new category
 const createCategory = asyncHandler(async (req, res) => {
   const { categoryName } = req.body;
   const webID = req.user.webID;
@@ -9,10 +9,11 @@ const createCategory = asyncHandler(async (req, res) => {
   if (!categoryName) {
     return res.status(200).json({
       statusCode: 200,
-      message: "Category name is required",
+      message: "Please provide category name",
     });
   }
 
+  // Check if category already exists
   const existing = await Category.findOne({ categoryName: categoryName.trim(), webID });
   if (existing) {
     return res.status(200).json({
@@ -23,27 +24,31 @@ const createCategory = asyncHandler(async (req, res) => {
 
   const category = await Category.create({ categoryName: categoryName.trim(), webID });
 
+  const categoryResponse = category.toObject();
+  delete categoryResponse.webID;
+  delete categoryResponse.__v;
+
   res.status(200).json({
     statusCode: 200,
     message: "Category created successfully",
-    category,
+    category: categoryResponse,
   });
 });
 
-// Get all categories
+// Get all categories by user
 const getCategories = asyncHandler(async (req, res) => {
   const webID = req.user.webID;
 
-  const categories = await Category.find({ webID }).sort({ categoryName: 1 });
+  const categories = await Category.find({ webID }).select("-webID -__v").sort({ categoryName: 1 });
 
   res.status(200).json({
     statusCode: 200,
-    message: "Categories fetched successfully",
+    message: categories.length ? "Categories retrieved successfully" : "No categories found for this user",
     categories,
   });
 });
 
-// Delete category
+// Delete a category
 const deleteCategory = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const webID = req.user.webID;

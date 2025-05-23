@@ -15,7 +15,7 @@ const createFood = asyncHandler(async (req, res) => {
   }
 
   // ✅ Check that category exists for this user
-  const categoryExists = await Category.findOne({ name: category, webID });
+  const categoryExists = await Category.findOne({ categoryName: category, webID });
   if (!categoryExists) {
     return res.status(200).json({
       statusCode: 200,
