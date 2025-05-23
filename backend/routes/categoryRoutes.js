@@ -9,10 +9,19 @@ const {
 } = require("../controllers/categoryController");
 const { protect } = require("../middleware/authMiddleware");
 
+// Create category
 router.post("/", protect, createCategory);
+
+// Get categories
 router.get("/", protect, getCategories);
-router.post("/delete", protect, deleteCategory);
-router.post("/status", protect, updateCategoryStatus);
+
+// Update category details
 router.post("/update", protect, updateCategory);
+
+// Update status only
+router.post("/status", protect, updateCategoryStatus);
+
+// Delete category
+router.post("/delete", protect, deleteCategory);
 
 module.exports = router;

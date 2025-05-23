@@ -9,7 +9,7 @@ const registerUser = async (req, res) => {
   try {
     if (!params || !params.username || !params.email || !params.password) {
       return res.status(200).json({
-        statusCode: 200,
+        statusCode: 201,
         success: false,
         message: "Please provide all required fields",
       });
@@ -21,7 +21,7 @@ const registerUser = async (req, res) => {
 
     if (existingUser) {
       return res.status(200).json({
-        statusCode: 200,
+        statusCode: 201,
         success: false,
         message: "Username or email already exists",
       });
@@ -59,7 +59,7 @@ const registerUser = async (req, res) => {
     });
   } catch (err) {
     res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       success: false,
       message: "Server error occurred during registration",
     });
@@ -73,7 +73,7 @@ const loginUser = async (req, res) => {
   try {
     if (!username || !password) {
       return res.status(200).json({
-        statusCode: 200,
+        statusCode: 201,
         success: false,
         message: "Please provide username and password",
       });
@@ -83,7 +83,7 @@ const loginUser = async (req, res) => {
 
     if (!user) {
       return res.status(200).json({
-        statusCode: 200,
+        statusCode: 201,
         success: false,
         message: "Invalid username or password",
       });
@@ -93,7 +93,7 @@ const loginUser = async (req, res) => {
 
     if (!isMatch) {
       return res.status(200).json({
-        statusCode: 200,
+        statusCode: 201,
         success: false,
         message: "Invalid username or password",
       });
@@ -117,7 +117,7 @@ const loginUser = async (req, res) => {
     });
   } catch (err) {
     res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       success: false,
       message: "Server error occurred during login",
     });
@@ -131,7 +131,7 @@ const forgotPassword = async (req, res) => {
   try {
     if (!username || !newPassword) {
       return res.status(200).json({
-        statusCode: 200,
+        statusCode: 201,
         success: false,
         message: "Please provide username and new password",
       });
@@ -141,7 +141,7 @@ const forgotPassword = async (req, res) => {
 
     if (!user) {
       return res.status(200).json({
-        statusCode: 200,
+        statusCode: 201,
         success: false,
         message: "User not found",
       });
@@ -158,7 +158,7 @@ const forgotPassword = async (req, res) => {
     });
   } catch (err) {
     res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       success: false,
       message: "Server error occurred while updating password",
     });
@@ -179,8 +179,8 @@ const getAllUsers = async (req, res) => {
       }))
     });
   } catch (err) {
-    res.status(500).json({
-      statusCode: 500,
+    res.status(200).json({
+      statusCode: 201,
       success: false,
       message: 'Server error occurred while retrieving users',
     });
