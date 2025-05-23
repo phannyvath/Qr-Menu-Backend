@@ -38,16 +38,23 @@ const createCategory = asyncHandler(async (req, res) => {
 const getCategories = asyncHandler(async (req, res) => {
   const webID = req.user.webID;
 
-  const categories = await Category.find({ webID }).select("-webID -__v").sort({ categoryName: 1 });
+  const categories = await Category.find({ webID }).sort({ categoryName: 1 });
+
+  const cleaned = categories.map((c) => {
+    const item = c.toObject();
+    delete item.webID;
+    delete item.__v;
+    return item;
+  });
 
   res.status(200).json({
     statusCode: 200,
-    message: categories.length ? "Categories retrieved successfully" : "No categories found for this user",
-    categories,
+    message: cleaned.length ? "Categories retrieved successfully" : "No categories found for this user",
+    categories: cleaned,
   });
 });
 
-// Delete category using payload
+// Delete a category by payload
 const deleteCategory = asyncHandler(async (req, res) => {
   const { categoryId } = req.body;
   const webID = req.user.webID;
