@@ -8,7 +8,7 @@ const createCategory = asyncHandler(async (req, res) => {
 
   if (!categoryName) {
     return res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       message: "Please provide category name",
     });
   }
@@ -16,7 +16,7 @@ const createCategory = asyncHandler(async (req, res) => {
   const existing = await Category.findOne({ categoryName: categoryName.trim(), webID });
   if (existing) {
     return res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       message: "Category already exists",
     });
   }
@@ -54,7 +54,7 @@ const deleteCategory = asyncHandler(async (req, res) => {
 
   if (!categoryId) {
     return res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       message: "categoryId is required",
     });
   }
@@ -63,7 +63,7 @@ const deleteCategory = asyncHandler(async (req, res) => {
 
   if (!category) {
     return res.status(200).json({
-      statusCode: 200,
+      statusCode: 201,
       message: "Category not found or not authorized",
     });
   }
