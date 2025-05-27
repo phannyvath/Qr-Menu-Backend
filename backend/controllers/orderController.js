@@ -5,10 +5,9 @@ const Table = require("../models/tableModel");
 
 // ✅ Create Order
 const order = asyncHandler(async (req, res) => {
-  const { items, webID, tableId } = req.body;
-  const numericWebID = Number(webID);
+  const { items, tableId } = req.body;
 
-  if (!numericWebID || !items?.length || !tableId) {
+  if (!items?.length || !tableId) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
@@ -25,8 +24,10 @@ const order = asyncHandler(async (req, res) => {
     });
   }
 
+  const webID = table.webID;
+
   const foodIds = items.map(item => item.foodId);
-  const foodDocs = await Food.find({ _id: { $in: foodIds }, webID: numericWebID });
+  const foodDocs = await Food.find({ _id: { $in: foodIds }, webID: webID });
 
   if (foodDocs.length !== items.length) {
     return res.status(200).json({
@@ -49,7 +50,7 @@ const order = asyncHandler(async (req, res) => {
 
   const newOrder = await Order.create({
     orderCode,
-    webID: numericWebID,
+    webID: webID,
     tableId,
     items: enrichedItems,
     totalPrice,
@@ -61,7 +62,7 @@ const order = asyncHandler(async (req, res) => {
     message: "Order placed successfully",
     order: {
       orderCode,
-      webID: numericWebID,
+      webID: webID,
       tableId,
       totalPrice,
       items: enrichedItems,
