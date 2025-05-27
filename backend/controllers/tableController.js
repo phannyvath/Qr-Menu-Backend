@@ -61,16 +61,14 @@ const updateTable = asyncHandler(async (req, res) => {
     });
   }
 
-  // Update only if valid
-  if (typeof type === "string" && ["normal", "VIP"].includes(type)) {
+  // Update fields if provided (no value checks)
+  if (type !== undefined) {
     table.type = type;
   }
-
-  if (typeof status === "string" && ["Busy", "Free"].includes(status)) {
+  if (status !== undefined) {
     table.status = status;
   }
-
-  if (typeof people === "string") {
+  if (people !== undefined) {
     table.people = people;
   }
 

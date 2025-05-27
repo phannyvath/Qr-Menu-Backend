@@ -71,14 +71,26 @@ const deleteCategory = asyncHandler(async (req, res) => {
     });
   }
 
-  const category = await Category.findOneAndDelete({ _id: categoryId, webID });
-
+  // Find the category to get its name
+  const category = await Category.findOne({ _id: categoryId, webID });
   if (!category) {
     return res.status(200).json({
       statusCode: 201,
       message: "Category not found or not authorized",
     });
   }
+
+  // Check if any foods exist in this category
+  const foodCount = await Food.countDocuments({ category: category.categoryName, webID });
+  if (foodCount > 0) {
+    return res.status(200).json({
+      statusCode: 201,
+      message: "Cannot delete category! Please delete all foods in this category first.",
+    });
+  }
+
+  // Now delete the category
+  await Category.findOneAndDelete({ _id: categoryId, webID });
 
   res.status(200).json({
     statusCode: 200,
