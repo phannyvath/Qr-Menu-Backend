@@ -1,17 +1,22 @@
 const asyncHandler = require("express-async-handler");
 const Table = require("../models/tableModel");
 
-// ✅ Create a table (no tableId needed)
+// ✅ Create table
 const createTable = asyncHandler(async (req, res) => {
   const { status = "normal", people = "" } = req.body;
 
   const table = await Table.create({ status, people });
 
+  const tableObj = table.toObject();
+  tableObj.tableId = tableObj._id;
+  delete tableObj._id;
+  delete tableObj.__v;
+
   res.status(200).json({
     statusCode: 200,
     success: true,
     message: "Table created successfully",
-    table,
+    table: tableObj,
   });
 });
 
@@ -19,27 +24,35 @@ const createTable = asyncHandler(async (req, res) => {
 const getAllTables = asyncHandler(async (req, res) => {
   const tables = await Table.find().sort({ createdAt: -1 });
 
+  const formatted = tables.map(table => {
+    const obj = table.toObject();
+    obj.tableId = obj._id;
+    delete obj._id;
+    delete obj.__v;
+    return obj;
+  });
+
   res.status(200).json({
     statusCode: 200,
     success: true,
     message: "Tables fetched successfully",
-    tables,
+    tables: formatted,
   });
 });
 
-// ✅ Update a table by _id
+// ✅ Update table
 const updateTable = asyncHandler(async (req, res) => {
-  const { _id, status, people } = req.body;
+  const { tableId, status, people } = req.body;
 
-  if (!_id) {
+  if (!tableId) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Missing _id",
+      message: "Missing tableId",
     });
   }
 
-  const table = await Table.findById(_id);
+  const table = await Table.findById(tableId);
   if (!table) {
     return res.status(200).json({
       statusCode: 201,
@@ -53,27 +66,32 @@ const updateTable = asyncHandler(async (req, res) => {
 
   await table.save();
 
+  const tableObj = table.toObject();
+  tableObj.tableId = tableObj._id;
+  delete tableObj._id;
+  delete tableObj.__v;
+
   res.status(200).json({
     statusCode: 200,
     success: true,
     message: "Table updated successfully",
-    table,
+    table: tableObj,
   });
 });
 
-// ✅ Delete a table by _id
+// ✅ Delete table
 const deleteTable = asyncHandler(async (req, res) => {
-  const { _id } = req.body;
+  const { tableId } = req.body;
 
-  if (!_id) {
+  if (!tableId) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Missing _id",
+      message: "Missing tableId",
     });
   }
 
-  const deleted = await Table.findByIdAndDelete(_id);
+  const deleted = await Table.findByIdAndDelete(tableId);
   if (!deleted) {
     return res.status(200).json({
       statusCode: 201,
@@ -82,11 +100,16 @@ const deleteTable = asyncHandler(async (req, res) => {
     });
   }
 
+  const deletedObj = deleted.toObject();
+  deletedObj.tableId = deletedObj._id;
+  delete deletedObj._id;
+  delete deletedObj.__v;
+
   res.status(200).json({
     statusCode: 200,
     success: true,
     message: "Table deleted successfully",
-    table: deleted,
+    table: deletedObj,
   });
 });
 
