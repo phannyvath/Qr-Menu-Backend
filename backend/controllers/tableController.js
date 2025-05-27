@@ -1,7 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Table = require("../models/tableModel");
 
-// Create table with incremental ID
+// ✅ Create a table with auto-incrementing tableId
 const createTable = asyncHandler(async (req, res) => {
   const { status = "normal", people = "" } = req.body;
 
@@ -23,7 +23,7 @@ const createTable = asyncHandler(async (req, res) => {
   });
 });
 
-// Get all tables
+// ✅ Get all tables
 const getAllTables = asyncHandler(async (req, res) => {
   const tables = await Table.find().sort({ createdAt: -1 });
 
@@ -35,20 +35,28 @@ const getAllTables = asyncHandler(async (req, res) => {
   });
 });
 
-// Update a table
+// ✅ Update a table by _id
 const updateTable = asyncHandler(async (req, res) => {
-  const { tableId, status, people } = req.body;
+  const { _id, status, people } = req.body;
 
-  if (!tableId) {
-    return res.status(200).json({ statusCode: 201, success: false, message: "Missing tableId" });
+  if (!_id) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Missing _id",
+    });
   }
 
-  const table = await Table.findOne({ tableId });
+  const table = await Table.findById(_id);
   if (!table) {
-    return res.status(200).json({ statusCode: 201, success: false, message: "Table not found" });
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Table not found",
+    });
   }
 
-  if (status && ["normal", "vip"].includes(status)) {
+  if (typeof status === "string") {
     table.status = status;
   }
 
@@ -66,18 +74,26 @@ const updateTable = asyncHandler(async (req, res) => {
   });
 });
 
-// Delete a table
+// ✅ Delete a table by _id
 const deleteTable = asyncHandler(async (req, res) => {
-  const { tableId } = req.body;
+  const { _id } = req.body;
 
-  if (!tableId) {
-    return res.status(200).json({ statusCode: 201, success: false, message: "Missing tableId" });
+  if (!_id) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Missing _id",
+    });
   }
 
-  const deleted = await Table.findOneAndDelete({ tableId });
+  const deleted = await Table.findByIdAndDelete(_id);
 
   if (!deleted) {
-    return res.status(200).json({ statusCode: 201, success: false, message: "Table not found" });
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Table not found",
+    });
   }
 
   res.status(200).json({
