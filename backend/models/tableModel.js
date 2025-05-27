@@ -2,7 +2,8 @@ const mongoose = require("mongoose");
 
 const tableSchema = new mongoose.Schema({
   tableId: { type: String, required: true, unique: true }, // e.g., "1", "2"
-  status: { type: String, enum: ["normal", "vip"], default: "normal" },
+  // status can be any string, like 'VIP', 'Busy', 'Reserved'
+    status: { type: String, default: "normal" },
   people: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now },
 });
