@@ -1,19 +1,11 @@
 const asyncHandler = require("express-async-handler");
 const Table = require("../models/tableModel");
 
-// ✅ Create a table with auto-incrementing tableId
+// ✅ Create a table (no tableId needed)
 const createTable = asyncHandler(async (req, res) => {
   const { status = "normal", people = "" } = req.body;
 
-  const lastTable = await Table.findOne().sort({ createdAt: -1 });
-  const lastId = lastTable ? parseInt(lastTable.tableId) : 0;
-  const nextTableId = String(lastId + 1);
-
-  const table = await Table.create({
-    tableId: nextTableId,
-    status,
-    people,
-  });
+  const table = await Table.create({ status, people });
 
   res.status(200).json({
     statusCode: 200,
@@ -56,13 +48,8 @@ const updateTable = asyncHandler(async (req, res) => {
     });
   }
 
-  if (typeof status === "string") {
-    table.status = status;
-  }
-
-  if (typeof people === "string") {
-    table.people = people;
-  }
+  if (typeof status === "string") table.status = status;
+  if (typeof people === "string") table.people = people;
 
   await table.save();
 
@@ -87,7 +74,6 @@ const deleteTable = asyncHandler(async (req, res) => {
   }
 
   const deleted = await Table.findByIdAndDelete(_id);
-
   if (!deleted) {
     return res.status(200).json({
       statusCode: 201,
