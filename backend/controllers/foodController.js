@@ -79,7 +79,7 @@ const getFoodsByWebID = asyncHandler(async (req, res) => {
     });
   }
 
-  const user = await User.findOne({ username });
+  const user = await User.findOne({ username: { $regex: `^${username}$`, $options: 'i' } });
   if (!user) {
     return res.status(200).json({
       statusCode: 201,
