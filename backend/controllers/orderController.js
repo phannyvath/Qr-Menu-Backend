@@ -1,14 +1,14 @@
 const asyncHandler = require("express-async-handler");
 const Order = require("../models/orderModel");
 const Food = require("../models/foodModel");
+const Table = require("../models/tableModel");
 
-// Guest places an order
-const createGuestOrder = asyncHandler(async (req, res) => {
-  const { items, webID } = req.body;
-  const numericWebID = Number(webID); // Ensure correct type
+// ✅ Create Order
+const order = asyncHandler(async (req, res) => {
+  const { items, webID, tableId } = req.body;
+  const numericWebID = Number(webID);
 
-  // Validate input
-  if (!numericWebID || !items?.length) {
+  if (!numericWebID || !items?.length || !tableId) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
@@ -16,26 +16,17 @@ const createGuestOrder = asyncHandler(async (req, res) => {
     });
   }
 
-  // Log inputs for debugging
+  const table = await Table.findById(tableId);
+  if (!table) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Invalid table ID",
+    });
+  }
+
   const foodIds = items.map(item => item.foodId);
-  console.log("🟡 Incoming foodIds:", foodIds);
-  console.log("🟡 Incoming webID:", numericWebID);
-  console.log("🟡 Type of webID:", typeof numericWebID);
-
-  const allFoods = await Food.find({});
-  console.log("🧾 All foods in DB:", allFoods.map(f => ({
-    _id: f._id.toString(),
-    foodName: f.foodName,
-    webID: f.webID,
-  })));
-
-  // Match food items with webID
-  const foodDocs = await Food.find({
-    _id: { $in: foodIds },
-    webID: numericWebID,
-  });
-
-  console.log("✅ Matched foodDocs:", foodDocs);
+  const foodDocs = await Food.find({ _id: { $in: foodIds }, webID: numericWebID });
 
   if (foodDocs.length !== items.length) {
     return res.status(200).json({
@@ -45,31 +36,25 @@ const createGuestOrder = asyncHandler(async (req, res) => {
     });
   }
 
-  // Calculate total price
   let totalPrice = 0;
   const enrichedItems = items.map(item => {
     const food = foodDocs.find(f => f._id.toString() === item.foodId);
     const subtotal = food.price * item.quantity;
     totalPrice += subtotal;
-    return {
-      foodId: item.foodId,
-      quantity: item.quantity,
-    };
+    return { foodId: item.foodId, quantity: item.quantity };
   });
 
-  // Generate order code
   const { nanoid } = await import("nanoid");
   const orderCode = nanoid(8);
 
-  // Save order
   const newOrder = await Order.create({
     orderCode,
     webID: numericWebID,
+    tableId,
     items: enrichedItems,
     totalPrice,
   });
 
-  // Send response
   res.status(200).json({
     statusCode: 200,
     success: true,
@@ -77,15 +62,16 @@ const createGuestOrder = asyncHandler(async (req, res) => {
     order: {
       orderCode,
       webID: numericWebID,
+      tableId,
       totalPrice,
       items: enrichedItems,
     },
   });
 });
 
-// Get all orders by webID from request body
-const getOrdersByWebID = asyncHandler(async (req, res) => {
-  const { webID } = req.body;
+// ✅ Get Orders (with optional orderCode filter)
+const getOrders = asyncHandler(async (req, res) => {
+  const { webID, orderCode } = req.body;
   const numericWebID = Number(webID);
 
   if (!numericWebID) {
@@ -96,51 +82,30 @@ const getOrdersByWebID = asyncHandler(async (req, res) => {
     });
   }
 
-  const orders = await Order.find({ webID: numericWebID })
-    .populate("items.foodId", "foodName price");
+  const query = { webID: numericWebID };
+  if (orderCode) query.orderCode = orderCode;
+
+  const orders = await Order.find(query)
+    .populate("items.foodId", "foodName price")
+    .populate("tableId", "type status people");
+
+  if (!orders.length) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "No orders found",
+    });
+  }
 
   res.status(200).json({
     statusCode: 200,
     success: true,
-    message: orders.length ? "Orders retrieved successfully" : "No orders found",
+    message: orderCode ? "Order verified" : "Orders retrieved successfully",
     orders,
   });
 });
 
-// Verify a specific order by code (uses webID from req.body)
-const verifyOrderByCode = asyncHandler(async (req, res) => {
-  const { orderCode, webID } = req.body;
-  const numericWebID = Number(webID);
-
-  if (!orderCode || !numericWebID) {
-    return res.status(200).json({
-      statusCode: 201,
-      success: false,
-      message: "Missing orderCode or webID",
-    });
-  }
-
-  const order = await Order.findOne({ orderCode, webID: numericWebID })
-    .populate("items.foodId", "foodName price");
-
-  if (!order) {
-    return res.status(200).json({
-      statusCode: 201,
-      success: false,
-      message: "Order not found",
-    });
-  }
-
-  res.status(200).json({
-    statusCode: 200,
-    success: true,
-    message: "Order verified",
-    order,
-  });
-});
-
 module.exports = {
-  createGuestOrder,
-  getOrdersByWebID,
-  verifyOrderByCode,
+  order,
+  getOrders,
 };

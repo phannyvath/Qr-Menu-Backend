@@ -1,15 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const {
-  createGuestOrder,
-  getOrdersByWebID,
-  verifyOrderByCode,
-} = require("../controllers/orderController");
+const { order, getOrders } = require("../controllers/orderController");
 
-// Swagger: Guest places an order
 /**
  * @swagger
- * /api/orders/guest:
+ * /api/order:
  *   post:
  *     tags: [Orders]
  *     summary: Place a guest order
@@ -21,17 +16,17 @@ const {
  *             type: object
  *             required:
  *               - webID
+ *               - tableId
  *               - items
  *             properties:
  *               webID:
+ *                 type: string
+ *               tableId:
  *                 type: string
  *               items:
  *                 type: array
  *                 items:
  *                   type: object
- *                   required:
- *                     - foodId
- *                     - quantity
  *                   properties:
  *                     foodId:
  *                       type: string
@@ -41,15 +36,14 @@ const {
  *       200:
  *         description: Order placed successfully
  */
-router.post("/guest", createGuestOrder);
+router.post("/order", order);
 
-// Swagger: Seller retrieves orders by webID (from request body)
 /**
  * @swagger
- * /api/orders/seller:
+ * /api/getorder:
  *   post:
  *     tags: [Orders]
- *     summary: Get all orders by seller (using webID in body)
+ *     summary: Get orders by webID or verify by orderCode
  *     requestBody:
  *       required: true
  *       content:
@@ -61,37 +55,12 @@ router.post("/guest", createGuestOrder);
  *             properties:
  *               webID:
  *                 type: string
- *     responses:
- *       200:
- *         description: Orders retrieved successfully
- */
-router.post("/seller", getOrdersByWebID); // No protect middleware needed if not using token
-
-// Swagger: Verify order by code
-/**
- * @swagger
- * /api/orders/verify:
- *   post:
- *     tags: [Orders]
- *     summary: Verify order by orderCode and webID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - orderCode
- *               - webID
- *             properties:
  *               orderCode:
  *                 type: string
- *               webID:
- *                 type: string
  *     responses:
  *       200:
- *         description: Order verified
+ *         description: Orders retrieved or verified
  */
-router.post("/verify", verifyOrderByCode);
+router.post("/getorder", getOrders);
 
 module.exports = router;
