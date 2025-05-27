@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Food = require("../models/foodModel");
 const Category = require("../models/categoryModel");
+const User = require("../models/User");
 
 // Create a new food item
 const createFood = asyncHandler(async (req, res) => {
@@ -68,17 +69,27 @@ const getFoodsByOwner = asyncHandler(async (req, res) => {
 
 // Get foods by webID
 const getFoodsByWebID = asyncHandler(async (req, res) => {
-  const { webId } = req.body;
+  const { username } = req.body;
 
-  if (!webId) {
+  if (!username) {
     return res.status(200).json({
       statusCode: 201,
-      message: "webId is required",
+      message: "username is required",
       foodData: [],
     });
   }
 
-  const foods = await Food.find({ webID: webId, status: true }).select("-webID -__v");
+  const user = await User.findOne({ username });
+  if (!user) {
+    return res.status(200).json({
+      statusCode: 201,
+      message: "User not found",
+      foodData: [],
+    });
+  }
+  const resolvedWebId = user.webID;
+
+  const foods = await Food.find({ webID: resolvedWebId, status: true }).select("-webID -__v");
 
   const groupedFoods = foods.reduce((acc, food) => {
     let group = acc.find((g) => g.category === food.category);
