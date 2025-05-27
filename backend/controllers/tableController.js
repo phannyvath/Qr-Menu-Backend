@@ -1,15 +1,17 @@
 const asyncHandler = require("express-async-handler");
 const Table = require("../models/tableModel");
 
-// ✅ Create table
+// ✅ Create a new table
 const createTable = asyncHandler(async (req, res) => {
-  const { status = "normal", people = "" } = req.body;
+  let { type = "normal", status = "Free", people = "" } = req.body;
 
-  const table = await Table.create({ status, people });
+  // Sanitize values
+  if (!["normal", "VIP"].includes(type)) type = "normal";
+  if (!["Busy", "Free"].includes(status)) status = "Free";
+
+  const table = await Table.create({ type, status, people });
 
   const tableObj = table.toObject();
-  tableObj.tableId = tableObj._id;
-  delete tableObj._id;
   delete tableObj.__v;
 
   res.status(200).json({
@@ -24,10 +26,8 @@ const createTable = asyncHandler(async (req, res) => {
 const getAllTables = asyncHandler(async (req, res) => {
   const tables = await Table.find().sort({ createdAt: -1 });
 
-  const formatted = tables.map(table => {
+  const formatted = tables.map((table) => {
     const obj = table.toObject();
-    obj.tableId = obj._id;
-    delete obj._id;
     delete obj.__v;
     return obj;
   });
@@ -40,19 +40,19 @@ const getAllTables = asyncHandler(async (req, res) => {
   });
 });
 
-// ✅ Update table
+// ✅ Update a table
 const updateTable = asyncHandler(async (req, res) => {
-  const { tableId, status, people } = req.body;
+  const { _id, type, status, people } = req.body;
 
-  if (!tableId) {
+  if (!_id) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Missing tableId",
+      message: "Missing _id",
     });
   }
 
-  const table = await Table.findById(tableId);
+  const table = await Table.findById(_id);
   if (!table) {
     return res.status(200).json({
       statusCode: 201,
@@ -61,14 +61,22 @@ const updateTable = asyncHandler(async (req, res) => {
     });
   }
 
-  if (typeof status === "string") table.status = status;
-  if (typeof people === "string") table.people = people;
+  // Update only if valid
+  if (typeof type === "string" && ["normal", "VIP"].includes(type)) {
+    table.type = type;
+  }
+
+  if (typeof status === "string" && ["Busy", "Free"].includes(status)) {
+    table.status = status;
+  }
+
+  if (typeof people === "string") {
+    table.people = people;
+  }
 
   await table.save();
 
   const tableObj = table.toObject();
-  tableObj.tableId = tableObj._id;
-  delete tableObj._id;
   delete tableObj.__v;
 
   res.status(200).json({
@@ -79,19 +87,19 @@ const updateTable = asyncHandler(async (req, res) => {
   });
 });
 
-// ✅ Delete table
+// ✅ Delete a table
 const deleteTable = asyncHandler(async (req, res) => {
-  const { tableId } = req.body;
+  const { _id } = req.body;
 
-  if (!tableId) {
+  if (!_id) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Missing tableId",
+      message: "Missing _id",
     });
   }
 
-  const deleted = await Table.findByIdAndDelete(tableId);
+  const deleted = await Table.findByIdAndDelete(_id);
   if (!deleted) {
     return res.status(200).json({
       statusCode: 201,
@@ -101,8 +109,6 @@ const deleteTable = asyncHandler(async (req, res) => {
   }
 
   const deletedObj = deleted.toObject();
-  deletedObj.tableId = deletedObj._id;
-  delete deletedObj._id;
   delete deletedObj.__v;
 
   res.status(200).json({

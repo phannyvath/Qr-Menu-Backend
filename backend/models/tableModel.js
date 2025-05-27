@@ -1,9 +1,22 @@
 const mongoose = require("mongoose");
 
 const tableSchema = new mongoose.Schema({
-  status: { type: String, default: "normal" }, // e.g., "VIP", "Busy", etc.
-  people: { type: String, default: "" },
-  createdAt: { type: Date, default: Date.now },
+  type: {
+    type: String,
+    default: "normal", // can be "normal" or "VIP"
+  },
+  status: {
+    type: String,
+    default: "Free", // can be "Busy" or "Free"
+  },
+  people: {
+    type: String,
+    default: "",
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 module.exports = mongoose.model("Table", tableSchema);
