@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const Category = require("../models/categoryModel");
+const Food = require("../models/foodModel");
 
 // Create a new category
 const createCategory = asyncHandler(async (req, res) => {
@@ -104,6 +105,7 @@ const updateCategoryStatus = asyncHandler(async (req, res) => {
     });
   }
 
+  // Find the category first to get its name
   const category = await Category.findOneAndUpdate(
     { _id: categoryId, webID },
     { status },
@@ -116,6 +118,12 @@ const updateCategoryStatus = asyncHandler(async (req, res) => {
       message: "Category not found or not authorized",
     });
   }
+
+  // Update all foods in this category to match the new status
+  await Food.updateMany(
+    { category: category.categoryName, webID },
+    { status }
+  );
 
   res.status(200).json({
     statusCode: 200,
@@ -136,6 +144,15 @@ const updateCategory = asyncHandler(async (req, res) => {
     });
   }
 
+  // Find the current category to get the old name
+  const currentCategory = await Category.findOne({ _id: categoryId, webID });
+  if (!currentCategory) {
+    return res.status(200).json({
+      statusCode: 201,
+      message: "Category not found or not authorized",
+    });
+  }
+
   const updates = {};
   if (categoryName) updates.categoryName = categoryName.trim();
   if (typeof status === "boolean") updates.status = status;
@@ -151,6 +168,22 @@ const updateCategory = asyncHandler(async (req, res) => {
       statusCode: 201,
       message: "Category not found or not authorized",
     });
+  }
+
+  // If category name changed, update all foods with the old name to the new name
+  if (categoryName && categoryName.trim() !== currentCategory.categoryName) {
+    await Food.updateMany(
+      { category: currentCategory.categoryName, webID },
+      { category: categoryName.trim() }
+    );
+  }
+
+  // If status changed, update all foods in this category to match the new status
+  if (typeof status === "boolean" && status !== currentCategory.status) {
+    await Food.updateMany(
+      { category: categoryName ? categoryName.trim() : currentCategory.categoryName, webID },
+      { status }
+    );
   }
 
   res.status(200).json({
