@@ -69,9 +69,9 @@ const order = asyncHandler(async (req, res) => {
   });
 });
 
-// ✅ Get Orders (with optional orderCode filter)
+// ✅ Get Orders strictly by webID
 const getOrders = asyncHandler(async (req, res) => {
-  const { webID, orderCode } = req.body;
+  const { webID } = req.body;
   const numericWebID = Number(webID);
 
   if (!numericWebID) {
@@ -82,10 +82,7 @@ const getOrders = asyncHandler(async (req, res) => {
     });
   }
 
-  const query = { webID: numericWebID };
-  if (orderCode) query.orderCode = orderCode;
-
-  const orders = await Order.find(query)
+  const orders = await Order.find({ webID: numericWebID })
     .populate("items.foodId", "foodName price")
     .populate("tableId", "type status people");
 
@@ -100,7 +97,7 @@ const getOrders = asyncHandler(async (req, res) => {
   res.status(200).json({
     statusCode: 200,
     success: true,
-    message: orderCode ? "Order verified" : "Orders retrieved successfully",
+    message: "Orders retrieved successfully",
     orders,
   });
 });
