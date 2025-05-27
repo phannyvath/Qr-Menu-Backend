@@ -78,7 +78,7 @@ const getFoodsByWebID = asyncHandler(async (req, res) => {
     });
   }
 
-  const foods = await Food.find({ webID: webId }).select("-webID -__v");
+  const foods = await Food.find({ webID: webId, status: true }).select("-webID -__v");
 
   const groupedFoods = foods.reduce((acc, food) => {
     let group = acc.find((g) => g.category === food.category);
