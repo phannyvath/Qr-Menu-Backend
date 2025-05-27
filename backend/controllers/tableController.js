@@ -3,11 +3,7 @@ const Table = require("../models/tableModel");
 
 // ✅ Create a new table
 const createTable = asyncHandler(async (req, res) => {
-  let { type = "normal", status = "Free", people = "" } = req.body;
-
-  // Sanitize values
-  if (!["normal", "VIP"].includes(type)) type = "normal";
-  if (!["Busy", "Free"].includes(status)) status = "Free";
+  let { type, status, people } = req.body;
 
   const table = await Table.create({ type, status, people });
 
