@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const Order = require("../models/orderModel");
 const Food = require("../models/foodModel");
 const Table = require("../models/tableModel");
+const User = require("../models/User");
 
 // ✅ Create Order
 const order = asyncHandler(async (req, res) => {
