@@ -5,7 +5,7 @@ const Table = require("../models/tableModel");
 
 // ✅ Create Order
 const order = asyncHandler(async (req, res) => {
-  const { items, tableId } = req.body;
+  const { username, items, tableId } = req.body;
 
   if (!items?.length || !tableId) {
     return res.status(200).json({
@@ -24,7 +24,16 @@ const order = asyncHandler(async (req, res) => {
     });
   }
 
-  const webID = table.webID;
+  const user = await User.findOne({ username: { $regex: `^${username}$`, $options: 'i' } });
+  if (!user) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  const webID = user.webID;
 
   const foodIds = items.map(item => item.foodId);
   const foodDocs = await Food.find({ _id: { $in: foodIds }, webID: webID });
