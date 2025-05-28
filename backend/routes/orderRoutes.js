@@ -62,5 +62,6 @@ router.post("/order", order);
  *         description: Orders retrieved or verified
  */
 router.post("/getorder", getOrders);
+router.post("/getcurrentorder", getCurrentOrderForTable);
 
 module.exports = router;
