@@ -61,7 +61,7 @@ const createOrder = asyncHandler(async (req, res) => {
     newItems.push({
       foodId: item.foodId,
       quantity: item.quantity,
-      status: 'pending',
+      status: 'pending', // Always set initial status as pending
       addedAt: new Date()
     });
   }
@@ -69,17 +69,20 @@ const createOrder = asyncHandler(async (req, res) => {
   if (order) {
     // Update existing items or add new ones
     for (const newItem of newItems) {
+      // Find existing item with same foodId regardless of status
       const existingItem = order.items.find(
-        item => item.foodId.toString() === newItem.foodId.toString() && 
-        item.status === newItem.status
+        item => item.foodId.toString() === newItem.foodId.toString()
       );
 
       if (existingItem) {
-        // If same food and status exists, increase quantity
+        // If same food exists, increase quantity and keep the existing status
         existingItem.quantity += newItem.quantity;
       } else {
-        // If different status or new food, add as new item
-        order.items.push(newItem);
+        // If new food, add as new item
+        order.items.push({
+          ...newItem,
+          _id: new Date().getTime().toString() // Add unique ID for new items
+        });
       }
     }
     order.totalPrice += totalPrice;
@@ -88,10 +91,15 @@ const createOrder = asyncHandler(async (req, res) => {
     // Generate order code for new order
     const orderCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    // Create new order
+    // Create new order with unique IDs for each item
+    const itemsWithIds = newItems.map(item => ({
+      ...item,
+      _id: new Date().getTime().toString() + Math.random().toString(36).substring(2, 8)
+    }));
+
     order = await Order.create({
       tableId,
-      items: newItems,
+      items: itemsWithIds,
       totalPrice,
       orderCode,
       webID,

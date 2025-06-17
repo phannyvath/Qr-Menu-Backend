@@ -79,7 +79,7 @@ const loginUser = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
 
     if (!user) {
       return res.status(200).json({
