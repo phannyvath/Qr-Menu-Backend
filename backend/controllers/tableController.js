@@ -148,7 +148,7 @@ const updateTableStatus = asyncHandler(async (req, res) => {
   }
 
   // Validate status
-  const validStatuses = ["Available", "Busy"];
+  const validStatuses = ["available", "busy"];
   if (!validStatuses.includes(status)) {
     return res.status(200).json({
       statusCode: 201,

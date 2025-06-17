@@ -12,7 +12,7 @@ const tableSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    default: "Available", // can be "Busy" or "Free"
+    default: "available", // can be "Busy" or "Free"
   },
   people: {
     type: String,
