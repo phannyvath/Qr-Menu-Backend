@@ -144,9 +144,55 @@ const deleteTable = asyncHandler(async (req, res) => {
   });
 });
 
+// Update table status
+const updateTableStatus = asyncHandler(async (req, res) => {
+  const { tableId, status, webID } = req.body;
+
+  if (!tableId || !status || !webID) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Missing required fields (tableId, status, webID)",
+    });
+  }
+
+  // Validate status
+  const validStatuses = ["Free", "Occupied", "Reserved"];
+  if (!validStatuses.includes(status)) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Invalid status. Must be one of: Free, Occupied, Reserved",
+    });
+  }
+
+  // Find the table by tableId and webID
+  const table = await Table.findOne({ tableId, webID });
+
+  if (!table) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Table not found",
+    });
+  }
+
+  // Update the status
+  table.status = status;
+  await table.save();
+
+  res.status(200).json({
+    statusCode: 200,
+    success: true,
+    message: "Table status updated successfully",
+    table,
+  });
+});
+
 module.exports = {
   createTable,
   getAllTables,
   updateTable,
   deleteTable,
+  updateTableStatus,
 };
