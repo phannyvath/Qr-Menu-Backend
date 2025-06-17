@@ -37,14 +37,6 @@ const order = asyncHandler(async (req, res) => {
     });
   }
 
-  if (table.status !== 'available') {
-    return res.status(200).json({
-      statusCode: 201,
-      success: false,
-      message: "Table is not available",
-    });
-  }
-
   // Check for an active order for this table (not completed or cancelled)
   let openOrder = await Order.findOne({ 
     tableId, 
@@ -78,7 +70,11 @@ const order = asyncHandler(async (req, res) => {
     const food = foodDocs.find(f => f._id.toString() === item.foodId);
     const subtotal = food.price * item.quantity;
     newItemsTotal += subtotal;
-    return { foodId: item.foodId, quantity: item.quantity };
+    return {
+      foodId: item.foodId,
+      quantity: item.quantity,
+      addedAt: new Date()
+    };
   });
 
   if (openOrder) {
@@ -87,11 +83,13 @@ const order = asyncHandler(async (req, res) => {
       const existing = openOrder.items.find(i => i.foodId.toString() === newItem.foodId);
       if (existing) {
         existing.quantity += newItem.quantity;
+        existing.addedAt = new Date(); // Update the addedAt timestamp
       } else {
         openOrder.items.push(newItem);
       }
     }
     openOrder.totalPrice += newItemsTotal;
+    openOrder.hasNewItems = true; // Mark that new items have been added
     await openOrder.save();
 
     return res.status(200).json({
@@ -116,6 +114,7 @@ const order = asyncHandler(async (req, res) => {
       totalPrice: newItemsTotal,
       status: 'pending',
       paymentStatus: 'pending',
+      hasNewItems: true,
       statusHistory: [{
         timestamp: new Date(),
         previousStatus: null,
@@ -150,7 +149,7 @@ const getOrders = asyncHandler(async (req, res) => {
 
   const orders = await Order.find({ webID: numericWebID })
     .populate("items.foodId", "foodName price")
-    .populate("tableId", "type status people");
+    .populate("tableId", "tableId type status");
 
   if (!orders.length) {
     return res.status(200).json({
@@ -160,11 +159,43 @@ const getOrders = asyncHandler(async (req, res) => {
     });
   }
 
+  // Format orders for frontend display
+  const formattedOrders = orders.map(order => {
+    const orderObj = order.toObject();
+    
+    // Group items by their status (new vs existing)
+    const items = orderObj.items.map(item => ({
+      ...item,
+      isNew: orderObj.hasNewItems && new Date(item.addedAt) > new Date(orderObj.statusHistory[orderObj.statusHistory.length - 1]?.timestamp || orderObj.createdAt)
+    }));
+
+    // Calculate counts for frontend display
+    const newItemsCount = items.filter(item => item.isNew).length;
+    const totalItemsCount = items.length;
+
+    return {
+      ...orderObj,
+      items,
+      displayInfo: {
+        hasNewItems: orderObj.hasNewItems,
+        newItemsCount,
+        totalItemsCount,
+        status: orderObj.status,
+        paymentStatus: orderObj.paymentStatus,
+        tableId: orderObj.tableId?.tableId,
+        orderCode: orderObj.orderCode,
+        totalPrice: orderObj.totalPrice,
+        createdAt: orderObj.createdAt,
+        lastUpdated: orderObj.statusHistory[orderObj.statusHistory.length - 1]?.timestamp || orderObj.createdAt
+      }
+    };
+  });
+
   res.status(200).json({
     statusCode: 200,
     success: true,
     message: "Orders retrieved successfully",
-    orders,
+    orders: formattedOrders,
   });
 });
 
@@ -192,11 +223,38 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
     });
   }
 
+  // Format order for frontend display
+  const orderObj = order.toObject();
+  const items = orderObj.items.map(item => ({
+    ...item,
+    isNew: orderObj.hasNewItems && new Date(item.addedAt) > new Date(orderObj.statusHistory[orderObj.statusHistory.length - 1]?.timestamp || orderObj.createdAt)
+  }));
+
+  const newItemsCount = items.filter(item => item.isNew).length;
+  const totalItemsCount = items.length;
+
+  const formattedOrder = {
+    ...orderObj,
+    items,
+    displayInfo: {
+      hasNewItems: orderObj.hasNewItems,
+      newItemsCount,
+      totalItemsCount,
+      status: orderObj.status,
+      paymentStatus: orderObj.paymentStatus,
+      tableId: orderObj.tableId?.tableId,
+      orderCode: orderObj.orderCode,
+      totalPrice: orderObj.totalPrice,
+      createdAt: orderObj.createdAt,
+      lastUpdated: orderObj.statusHistory[orderObj.statusHistory.length - 1]?.timestamp || orderObj.createdAt
+    }
+  };
+
   res.status(200).json({
     statusCode: 200,
     success: true,
     message: "Current unpaid order retrieved successfully",
-    order,
+    order: formattedOrder,
   });
 });
 
@@ -285,7 +343,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
         // When payment is made, automatically complete the order
         newOrderStatus = 'completed';
         statusMessage = 'Order completed and paid successfully';
-        // Update table status to Free when order is completed
+        // Update table status to Available when order is completed
         if (order.tableId) {
           await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
         }
@@ -294,7 +352,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
         // When payment is cancelled, automatically cancel the order
         newOrderStatus = 'cancelled';
         statusMessage = 'Order and payment have been cancelled';
-        // Update table status to Free when order is cancelled
+        // Update table status to Available when order is cancelled
         if (order.tableId) {
           await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
         }
@@ -325,6 +383,8 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
         break;
       case 'preparing':
         statusMessage = 'Order is being prepared';
+        // Reset hasNewItems flag when order status changes to preparing
+        order.hasNewItems = false;
         break;
       case 'ready':
         statusMessage = 'Order is ready for payment';

@@ -8,6 +8,7 @@ const orderSchema = new mongoose.Schema({
     {
       foodId: { type: mongoose.Schema.Types.ObjectId, ref: "Food", required: true },
       quantity: { type: Number, required: true },
+      addedAt: { type: Date, default: Date.now }
     }
   ],
   totalPrice: { type: Number, required: true },
@@ -15,7 +16,19 @@ const orderSchema = new mongoose.Schema({
   paymentStatus: { type: String, default: "pending" },
   paymentMethod: { type: String, default: "credit_card" },
   transactionId: { type: String },
+  hasNewItems: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
+  statusHistory: [{
+    timestamp: { type: Date, default: Date.now },
+    previousStatus: {
+      orderStatus: String,
+      paymentStatus: String
+    },
+    newStatus: {
+      orderStatus: String,
+      paymentStatus: String
+    }
+  }]
 });
 
 module.exports = mongoose.model("Order", orderSchema);
