@@ -156,23 +156,19 @@ const getOrders = asyncHandler(async (req, res) => {
   const formattedOrders = orders.map(order => {
     const orderObj = order.toObject();
     
-    // Group items by their status (new vs existing)
-    const items = orderObj.items.map(item => ({
-      ...item,
-      isNew: orderObj.hasNewItems && new Date(item.addedAt) > new Date(orderObj.statusHistory[orderObj.statusHistory.length - 1]?.timestamp || orderObj.createdAt)
-    }));
-
-    // Calculate counts for frontend display
-    const newItemsCount = items.filter(item => item.isNew).length;
-    const totalItemsCount = items.length;
+    // Separate items into ready and new
+    const readyItems = orderObj.items.filter(item => item.status === 'ready');
+    const newItems = orderObj.items.filter(item => item.status === 'pending');
 
     return {
       ...orderObj,
-      items,
+      readyItems,
+      newItems,
       displayInfo: {
-        hasNewItems: orderObj.hasNewItems,
-        newItemsCount,
-        totalItemsCount,
+        hasNewItems: newItems.length > 0,
+        newItemsCount: newItems.length,
+        readyItemsCount: readyItems.length,
+        totalItemsCount: orderObj.items.length,
         status: orderObj.status,
         paymentStatus: orderObj.paymentStatus,
         tableId: orderObj.tableId?.tableId,
@@ -218,21 +214,20 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
 
   // Format order for frontend display
   const orderObj = order.toObject();
-  const items = orderObj.items.map(item => ({
-    ...item,
-    isNew: orderObj.hasNewItems && new Date(item.addedAt) > new Date(orderObj.statusHistory[orderObj.statusHistory.length - 1]?.timestamp || orderObj.createdAt)
-  }));
-
-  const newItemsCount = items.filter(item => item.isNew).length;
-  const totalItemsCount = items.length;
+  
+  // Separate items into ready and new
+  const readyItems = orderObj.items.filter(item => item.status === 'ready');
+  const newItems = orderObj.items.filter(item => item.status === 'pending');
 
   const formattedOrder = {
     ...orderObj,
-    items,
+    readyItems,
+    newItems,
     displayInfo: {
-      hasNewItems: orderObj.hasNewItems,
-      newItemsCount,
-      totalItemsCount,
+      hasNewItems: newItems.length > 0,
+      newItemsCount: newItems.length,
+      readyItemsCount: readyItems.length,
+      totalItemsCount: orderObj.items.length,
       status: orderObj.status,
       paymentStatus: orderObj.paymentStatus,
       tableId: orderObj.tableId?.tableId,
@@ -420,11 +415,33 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   
   await order.save();
 
+  // Format the response to separate ready and new items
+  const orderResponse = order.toObject();
+  const readyItems = orderResponse.items.filter(item => item.status === 'ready');
+  const newItems = orderResponse.items.filter(item => item.status === 'pending');
+
   res.status(200).json({
     statusCode: 200,
     success: true,
     message: statusMessage,
-    order,
+    order: {
+      ...orderResponse,
+      readyItems,
+      newItems,
+      displayInfo: {
+        hasNewItems: newItems.length > 0,
+        newItemsCount: newItems.length,
+        readyItemsCount: readyItems.length,
+        totalItemsCount: orderResponse.items.length,
+        status: orderResponse.status,
+        paymentStatus: orderResponse.paymentStatus,
+        tableId: orderResponse.tableId?.tableId,
+        orderCode: orderResponse.orderCode,
+        totalPrice: orderResponse.totalPrice,
+        createdAt: orderResponse.createdAt,
+        lastUpdated: orderResponse.statusHistory[orderResponse.statusHistory.length - 1]?.timestamp || orderResponse.createdAt
+      }
+    }
   });
 });
 
