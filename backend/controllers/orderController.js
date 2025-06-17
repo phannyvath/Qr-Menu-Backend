@@ -43,15 +43,6 @@ const order = asyncHandler(async (req, res) => {
     status: { $nin: ['completed', 'cancelled'] }
   });
 
-  // If there's an active order, check if it's from the same user
-  if (openOrder && openOrder.webID !== webID) {
-    return res.status(200).json({
-      statusCode: 201,
-      success: false,
-      message: "There is already an active order for this table",
-    });
-  }
-
   // Prepare food validation
   const foodIds = items.map(item => item.foodId);
   const foodDocs = await Food.find({ _id: { $in: foodIds }, webID: webID });
@@ -73,7 +64,8 @@ const order = asyncHandler(async (req, res) => {
     return {
       foodId: item.foodId,
       quantity: item.quantity,
-      addedAt: new Date()
+      addedAt: new Date(),
+      status: 'pending' // Add status for each item
     };
   });
 
@@ -83,13 +75,14 @@ const order = asyncHandler(async (req, res) => {
       const existing = openOrder.items.find(i => i.foodId.toString() === newItem.foodId);
       if (existing) {
         existing.quantity += newItem.quantity;
-        existing.addedAt = new Date(); // Update the addedAt timestamp
+        existing.addedAt = new Date();
+        existing.status = 'pending'; // Reset status for updated items
       } else {
         openOrder.items.push(newItem);
       }
     }
     openOrder.totalPrice += newItemsTotal;
-    openOrder.hasNewItems = true; // Mark that new items have been added
+    openOrder.hasNewItems = true;
     await openOrder.save();
 
     return res.status(200).json({
@@ -260,38 +253,14 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
 
 // ✅ Update order status and payment status
 const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
-  const { orderCode, orderStatus, paymentStatus } = req.body;
+  const { orderCode, orderStatus, paymentStatus, itemIds } = req.body;
 
-  if (!orderCode || (!orderStatus && !paymentStatus)) {
+  if (!orderCode || (!orderStatus && !paymentStatus && !itemIds)) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Missing required fields (orderCode and either orderStatus or paymentStatus)",
+      message: "Missing required fields (orderCode and either orderStatus, paymentStatus, or itemIds)",
     });
-  }
-
-  // Validate payment status if provided
-  if (paymentStatus) {
-    const validPaymentStatuses = ['pending', 'paid', 'cancelled'];
-    if (!validPaymentStatuses.includes(paymentStatus)) {
-      return res.status(200).json({
-        statusCode: 201,
-        success: false,
-        message: "Invalid payment status. Must be one of: pending, paid, cancelled",
-      });
-    }
-  }
-
-  // Validate order status if provided
-  if (orderStatus) {
-    const validOrderStatuses = ['pending', 'preparing', 'ready', 'completed', 'cancelled'];
-    if (!validOrderStatuses.includes(orderStatus)) {
-      return res.status(200).json({
-        statusCode: 201,
-        success: false,
-        message: "Invalid order status. Must be one of: pending, preparing, ready, completed, cancelled",
-      });
-    }
   }
 
   const order = await Order.findOne({ orderCode })
@@ -324,6 +293,16 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   let statusMessage = '';
   let newOrderStatus = order.status;
   let newPaymentStatus = order.paymentStatus;
+
+  // Handle item status updates
+  if (itemIds && itemIds.length > 0) {
+    order.items.forEach(item => {
+      if (itemIds.includes(item._id.toString())) {
+        item.status = 'ready'; // Mark specific items as ready
+      }
+    });
+    statusMessage = 'Selected items marked as ready';
+  }
 
   // Handle payment status update
   if (paymentStatus) {
