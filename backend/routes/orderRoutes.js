@@ -69,7 +69,7 @@ router.post("/getcurrentorder", getCurrentOrderForTable);
  * /api/order/payment-status:
  *   post:
  *     tags: [Orders]
- *     summary: Update order payment status
+ *     summary: Update order payment status and order status
  *     requestBody:
  *       required: true
  *       content:
@@ -85,8 +85,6 @@ router.post("/getcurrentorder", getCurrentOrderForTable);
  *               paymentStatus:
  *                 type: string
  *                 enum: [pending, paid, failed, refunded]
- *               paymentMethod:
- *                 type: string
  *     responses:
  *       200:
  *         description: Order payment status updated successfully

@@ -3,9 +3,27 @@ const Table = require("../models/tableModel");
 
 // ✅ Create a new table
 const createTable = asyncHandler(async (req, res) => {
-  let { type, status, people } = req.body;
+  let { tableId, type, status, people } = req.body;
 
-  const table = await Table.create({ type, status, people });
+  if (!tableId) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "tableId is required",
+    });
+  }
+
+  // Check if tableId already exists
+  const existingTable = await Table.findOne({ tableId });
+  if (existingTable) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Table with this tableId already exists",
+    });
+  }
+
+  const table = await Table.create({ tableId, type, status, people });
 
   const tableObj = table.toObject();
   delete tableObj.__v;
@@ -20,7 +38,7 @@ const createTable = asyncHandler(async (req, res) => {
 
 // ✅ Get all tables
 const getAllTables = asyncHandler(async (req, res) => {
-  const tables = await Table.find().sort({ createdAt: -1 });
+  const tables = await Table.find().sort({ tableId: 1 });
 
   const formatted = tables.map((table) => {
     const obj = table.toObject();
@@ -38,7 +56,7 @@ const getAllTables = asyncHandler(async (req, res) => {
 
 // ✅ Update a table
 const updateTable = asyncHandler(async (req, res) => {
-  const { _id, type, status, people } = req.body;
+  const { _id, tableId, type, status, people } = req.body;
 
   if (!_id) {
     return res.status(200).json({
@@ -57,7 +75,20 @@ const updateTable = asyncHandler(async (req, res) => {
     });
   }
 
-  // Update fields if provided (no value checks)
+  // If tableId is being updated, check if it's already in use
+  if (tableId !== undefined && tableId !== table.tableId) {
+    const existingTable = await Table.findOne({ tableId });
+    if (existingTable) {
+      return res.status(200).json({
+        statusCode: 201,
+        success: false,
+        message: "Table with this tableId already exists",
+      });
+    }
+    table.tableId = tableId;
+  }
+
+  // Update other fields if provided
   if (type !== undefined) {
     table.type = type;
   }

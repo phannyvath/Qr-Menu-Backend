@@ -27,8 +27,38 @@ const order = asyncHandler(async (req, res) => {
 
   const webID = user.webID;
 
-  // Check for an open order for this table
-  let openOrder = await Order.findOne({ tableId, paymentStatus: { $ne: 'paid' } });
+  // Check if table exists and is available
+  const table = await Table.findById(tableId);
+  if (!table) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Table not found",
+    });
+  }
+
+  if (table.status !== 'Free') {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Table is not available",
+    });
+  }
+
+  // Check for an active order for this table (not completed or cancelled)
+  let openOrder = await Order.findOne({ 
+    tableId, 
+    status: { $nin: ['completed', 'cancelled'] }
+  });
+
+  // If there's an active order, check if it's from the same user
+  if (openOrder && openOrder.webID !== webID) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "There is already an active order for this table",
+    });
+  }
 
   // Prepare food validation
   const foodIds = items.map(item => item.foodId);
@@ -67,7 +97,7 @@ const order = asyncHandler(async (req, res) => {
     return res.status(200).json({
       statusCode: 200,
       success: true,
-      message: "Order updated successfully",
+      message: "Order updated successfully. You can continue adding items until payment is made.",
       order: openOrder,
     });
   } else {
@@ -75,18 +105,31 @@ const order = asyncHandler(async (req, res) => {
     const { nanoid } = await import("nanoid");
     const orderCode = nanoid(8);
 
+    // Update table status to Busy
+    await Table.findByIdAndUpdate(tableId, { status: 'Busy' });
+
     const newOrder = await Order.create({
       orderCode,
       webID: webID,
       tableId,
       items: enrichedItems,
       totalPrice: newItemsTotal,
+      status: 'active',
+      paymentStatus: 'pending',
+      statusHistory: [{
+        timestamp: new Date(),
+        previousStatus: null,
+        newStatus: {
+          orderStatus: 'active',
+          paymentStatus: 'pending'
+        }
+      }]
     });
 
     return res.status(200).json({
       statusCode: 200,
       success: true,
-      message: "Order placed successfully",
+      message: "Order placed successfully. You can continue adding items until payment is made.",
       order: newOrder,
     });
   }
@@ -159,7 +202,7 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
 
 // ✅ Update order payment status
 const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
-  const { orderCode, paymentStatus, paymentMethod } = req.body;
+  const { orderCode, paymentStatus } = req.body;
 
   if (!orderCode || !paymentStatus) {
     return res.status(200).json({
@@ -170,16 +213,19 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   }
 
   // Validate payment status
-  const validStatuses = ['pending', 'paid', 'failed', 'refunded'];
+  const validStatuses = ['pending', 'paid', 'cancelled'];
   if (!validStatuses.includes(paymentStatus)) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Invalid payment status",
+      message: "Invalid payment status. Must be one of: pending, paid, cancelled",
     });
   }
 
-  const order = await Order.findOne({ orderCode });
+  const order = await Order.findOne({ orderCode })
+    .populate("items.foodId", "foodName price")
+    .populate("tableId", "tableId type status");
+
   if (!order) {
     return res.status(200).json({
       statusCode: 201,
@@ -188,19 +234,68 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     });
   }
 
-  // Update the order
-  order.paymentStatus = paymentStatus;
-  if (paymentMethod) {
-    order.paymentMethod = paymentMethod;
+  // Prevent updating completed or cancelled orders
+  if (order.status === 'completed' || order.status === 'cancelled') {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: `Cannot update ${order.status} order`,
+    });
   }
-  order.status = paymentStatus === 'paid' ? 'completed' : 'pending';
+
+  // Store previous status for history
+  const previousStatus = {
+    orderStatus: order.status,
+    paymentStatus: order.paymentStatus
+  };
+
+  // Update payment status
+  order.paymentStatus = paymentStatus;
+  
+  // Update order status based on payment status
+  let statusMessage = '';
+  switch (paymentStatus) {
+    case 'paid':
+      order.status = 'completed';
+      statusMessage = 'Order completed and paid successfully';
+      // Update table status to Free when order is completed
+      if (order.tableId) {
+        await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+      }
+      break;
+    case 'cancelled':
+      order.status = 'cancelled';
+      statusMessage = 'Order has been cancelled';
+      // Update table status to Free when order is cancelled
+      if (order.tableId) {
+        await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+      }
+      break;
+    case 'pending':
+      order.status = 'active';
+      statusMessage = 'Order is active and can be modified';
+      break;
+  }
+
+  // Add status history
+  if (!order.statusHistory) {
+    order.statusHistory = [];
+  }
+  order.statusHistory.push({
+    timestamp: new Date(),
+    previousStatus,
+    newStatus: {
+      orderStatus: order.status,
+      paymentStatus: order.paymentStatus
+    }
+  });
   
   await order.save();
 
   res.status(200).json({
     statusCode: 200,
     success: true,
-    message: "Order payment status updated successfully",
+    message: statusMessage,
     order,
   });
 });

@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
 const tableSchema = new mongoose.Schema({
+  tableId: {
+    type: Number,
+    required: true,
+    unique: true,
+  },
   type: {
     type: String,
     default: "normal", // can be "normal" or "VIP"
