@@ -45,8 +45,11 @@ const createOrder = asyncHandler(async (req, res) => {
     });
   }
 
-  // Calculate total price
+  // Calculate total price and prepare items with status
   let totalPrice = 0;
+  const itemsWithStatus = [];
+
+  // Process each item sequentially
   for (const item of items) {
     const food = await Food.findById(item.foodId);
     if (!food) {
@@ -57,6 +60,11 @@ const createOrder = asyncHandler(async (req, res) => {
       });
     }
     totalPrice += food.price * item.quantity;
+    itemsWithStatus.push({
+      ...item,
+      status: 'pending', // Add status field to each item
+      addedAt: new Date()
+    });
   }
 
   // Generate order code
@@ -65,10 +73,7 @@ const createOrder = asyncHandler(async (req, res) => {
   // Create order with items having status
   const order = await Order.create({
     tableId,
-    items: items.map(item => ({
-      ...item,
-      status: 'pending' // Set initial status as pending
-    })),
+    items: itemsWithStatus,
     totalPrice,
     orderCode,
     webID,
@@ -369,31 +374,10 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   order.paymentStatus = newPaymentStatus;
   await order.save();
 
-  // Format the response
-  const orderResponse = order.toObject();
-  const readyItems = orderResponse.items.filter(item => item.status === 'ready');
-  const pendingItems = orderResponse.items.filter(item => item.status === 'pending');
-
   res.status(200).json({
     statusCode: 200,
     success: true,
     message: statusMessage,
-    order: {
-      ...orderResponse,
-      readyItems,
-      pendingItems,
-      displayInfo: {
-        pendingItemsCount: pendingItems.length,
-        readyItemsCount: readyItems.length,
-        totalItemsCount: orderResponse.items.length,
-        status: orderResponse.status,
-        paymentStatus: orderResponse.paymentStatus,
-        tableId: orderResponse.tableId?.tableId,
-        orderCode: orderResponse.orderCode,
-        totalPrice: orderResponse.totalPrice,
-        createdAt: orderResponse.createdAt
-      }
-    }
   });
 });
 
