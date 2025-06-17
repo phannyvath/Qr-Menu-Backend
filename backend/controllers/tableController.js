@@ -75,8 +75,8 @@ const updateTable = asyncHandler(async (req, res) => {
     });
   }
 
-  // If tableId is being updated, check if it's already in use
-  if (tableId !== undefined && tableId !== table.tableId) {
+  // Only check for duplicate tableId if it's being changed
+  if (tableId && tableId !== table.tableId) {
     const existingTable = await Table.findOne({ tableId });
     if (existingTable) {
       return res.status(200).json({
