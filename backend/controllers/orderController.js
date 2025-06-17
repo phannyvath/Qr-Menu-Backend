@@ -302,6 +302,10 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     order.paymentStatus = paymentStatus;
     
     if (paymentStatus === 'paid') {
+      // Update all items to completed when paid
+      order.items.forEach(item => {
+        item.status = 'completed';
+      });
       order.status = 'completed';
       statusMessage = 'Order completed and paid successfully';
       if (order.tableId) {
@@ -316,11 +320,23 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   const orderResponse = order.toObject();
   const readyItems = orderResponse.items.filter(item => item.status === 'ready');
   const pendingItems = orderResponse.items.filter(item => item.status === 'pending');
+  const completedItems = orderResponse.items.filter(item => item.status === 'completed');
+
+  // Calculate separate totals
+  const calculateTotal = (items) => {
+    return items.reduce((total, item) => {
+      return total + (item.foodId.price * item.quantity);
+    }, 0);
+  };
+
+  const readyTotal = calculateTotal(readyItems);
+  const pendingTotal = calculateTotal(pendingItems);
+  const completedTotal = calculateTotal(completedItems);
 
   res.status(200).json({
     statusCode: 200,
     success: true,
-    message: statusMessage,
+    message: statusMessage || "Order updated successfully",
     order: {
       orderCode: orderResponse.orderCode,
       tableId: orderResponse.tableId?.tableId,
@@ -328,7 +344,14 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
       status: orderResponse.status,
       paymentStatus: orderResponse.paymentStatus,
       readyItems,
-      pendingItems
+      pendingItems,
+      completedItems,
+      totals: {
+        ready: readyTotal,
+        pending: pendingTotal,
+        completed: completedTotal,
+        overall: orderResponse.totalPrice
+      }
     }
   });
 });
