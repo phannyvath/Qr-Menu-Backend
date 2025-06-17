@@ -6,15 +6,26 @@ const User = require("../models/User");
 
 // ✅ Create Order
 const createOrder = asyncHandler(async (req, res) => {
-  const { tableId, items, webID } = req.body;
+  const { username, items, tableId } = req.body;
 
-  if (!tableId || !items || !webID) {
+  if (!items?.length || !tableId) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Missing required fields (tableId, items, webID)",
+      message: "Missing required fields",
     });
   }
+
+  const user = await User.findOne({ username: { $regex: `^${username}$`, $options: 'i' } });
+  if (!user) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  const webID = user.webID;
 
   // Check if table exists and is available
   const table = await Table.findById(tableId);
