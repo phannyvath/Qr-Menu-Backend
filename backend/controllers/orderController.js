@@ -37,7 +37,7 @@ const order = asyncHandler(async (req, res) => {
     });
   }
 
-  if (table.status !== 'Free') {
+  if (table.status !== 'Available') {
     return res.status(200).json({
       statusCode: 201,
       success: false,
@@ -287,7 +287,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
         statusMessage = 'Order completed and paid successfully';
         // Update table status to Free when order is completed
         if (order.tableId) {
-          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Available' });
         }
         break;
       case 'cancelled':
@@ -296,7 +296,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
         statusMessage = 'Order and payment have been cancelled';
         // Update table status to Free when order is cancelled
         if (order.tableId) {
-          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Available' });
         }
         break;
       case 'pending':
@@ -333,7 +333,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
           newOrderStatus = 'completed';
           statusMessage = 'Order completed and paid successfully';
           if (order.tableId) {
-            await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+            await Table.findByIdAndUpdate(order.tableId._id, { status: 'Available' });
           }
         }
         break;
@@ -348,7 +348,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
         }
         statusMessage = 'Order is completed';
         if (order.tableId) {
-          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Available' });
         }
         break;
       case 'cancelled':
@@ -356,7 +356,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
         newPaymentStatus = 'cancelled';
         statusMessage = 'Order and payment have been cancelled';
         if (order.tableId) {
-          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Available' });
         }
         break;
     }
