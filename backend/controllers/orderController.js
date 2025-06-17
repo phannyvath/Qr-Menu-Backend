@@ -79,10 +79,7 @@ const createOrder = asyncHandler(async (req, res) => {
         existingItem.quantity += newItem.quantity;
       } else {
         // If new food, add as new item
-        order.items.push({
-          ...newItem,
-          _id: new Date().getTime().toString() // Add unique ID for new items
-        });
+        order.items.push(newItem);
       }
     }
     order.totalPrice += totalPrice;
@@ -91,15 +88,10 @@ const createOrder = asyncHandler(async (req, res) => {
     // Generate order code for new order
     const orderCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    // Create new order with unique IDs for each item
-    const itemsWithIds = newItems.map(item => ({
-      ...item,
-      _id: new Date().getTime().toString() + Math.random().toString(36).substring(2, 8)
-    }));
-
+    // Create new order
     order = await Order.create({
       tableId,
-      items: itemsWithIds,
+      items: newItems,
       totalPrice,
       orderCode,
       webID,
