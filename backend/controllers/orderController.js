@@ -45,7 +45,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
   // Calculate total price and prepare items with status
   let totalPrice = 0;
-  const itemsWithStatus = [];
+  const newItems = [];
 
   // Process each item sequentially
   for (const item of items) {
@@ -58,7 +58,7 @@ const createOrder = asyncHandler(async (req, res) => {
       });
     }
     totalPrice += food.price * item.quantity;
-    itemsWithStatus.push({
+    newItems.push({
       foodId: item.foodId,
       quantity: item.quantity,
       status: 'pending',
@@ -67,8 +67,21 @@ const createOrder = asyncHandler(async (req, res) => {
   }
 
   if (order) {
-    // Add new items to existing order
-    order.items.push(...itemsWithStatus);
+    // Update existing items or add new ones
+    for (const newItem of newItems) {
+      const existingItem = order.items.find(
+        item => item.foodId.toString() === newItem.foodId.toString() && 
+        item.status === newItem.status
+      );
+
+      if (existingItem) {
+        // If same food and status exists, increase quantity
+        existingItem.quantity += newItem.quantity;
+      } else {
+        // If different status or new food, add as new item
+        order.items.push(newItem);
+      }
+    }
     order.totalPrice += totalPrice;
     await order.save();
   } else {
@@ -78,7 +91,7 @@ const createOrder = asyncHandler(async (req, res) => {
     // Create new order
     order = await Order.create({
       tableId,
-      items: itemsWithStatus,
+      items: newItems,
       totalPrice,
       orderCode,
       webID,
@@ -98,7 +111,16 @@ const createOrder = asyncHandler(async (req, res) => {
   res.status(200).json({
     statusCode: 200,
     success: true,
-    message: order ? "Items added to existing order" : "New order created successfully"
+    message: order ? "Items added to existing order" : "New order created successfully",
+    order: {
+      orderCode: orderResponse.orderCode,
+      tableId: orderResponse.tableId,
+      totalPrice: orderResponse.totalPrice,
+      status: orderResponse.status,
+      paymentStatus: orderResponse.paymentStatus,
+      readyItems,
+      pendingItems
+    }
   });
 });
 
@@ -257,13 +279,14 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
 
   // Handle item status updates
   if (itemIds && itemIds.length > 0 && status) {
-    // If updating to ready, update all specified items
+    let updatedCount = 0;
     order.items.forEach(item => {
       if (itemIds.includes(item._id.toString())) {
         item.status = status;
+        updatedCount++;
       }
     });
-    statusMessage = `Selected items marked as ${status}`;
+    statusMessage = `${updatedCount} item(s) marked as ${status}`;
   }
 
   // Handle payment status update
@@ -291,7 +314,11 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     success: true,
     message: statusMessage,
     order: {
-      ...orderResponse,
+      orderCode: orderResponse.orderCode,
+      tableId: orderResponse.tableId?.tableId,
+      totalPrice: orderResponse.totalPrice,
+      status: orderResponse.status,
+      paymentStatus: orderResponse.paymentStatus,
       readyItems,
       pendingItems
     }
