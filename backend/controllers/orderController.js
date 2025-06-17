@@ -68,12 +68,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
   if (order) {
     // Add new items to existing order
-    // Ensure new items are always pending regardless of order status
-    const newItems = itemsWithStatus.map(item => ({
-      ...item,
-      status: 'pending' // Force status to pending for new items
-    }));
-    order.items.push(...newItems);
+    order.items.push(...itemsWithStatus);
     order.totalPrice += totalPrice;
     await order.save();
   } else {
@@ -103,23 +98,7 @@ const createOrder = asyncHandler(async (req, res) => {
   res.status(200).json({
     statusCode: 200,
     success: true,
-    message: order ? "Items added to existing order" : "New order created successfully",
-    order: {
-      ...orderResponse,
-      readyItems,
-      pendingItems,
-      displayInfo: {
-        pendingItemsCount: pendingItems.length,
-        readyItemsCount: readyItems.length,
-        totalItemsCount: orderResponse.items.length,
-        status: orderResponse.status,
-        paymentStatus: orderResponse.paymentStatus,
-        tableId: orderResponse.tableId?.tableId,
-        orderCode: orderResponse.orderCode,
-        totalPrice: orderResponse.totalPrice,
-        createdAt: orderResponse.createdAt
-      }
-    }
+    message: order ? "Items added to existing order" : "New order created successfully"
   });
 });
 
@@ -164,7 +143,6 @@ const getOrders = asyncHandler(async (req, res) => {
 
     return {
       ...orderObj,
-      items,
       readyItems,
       pendingItems,
       displayInfo: {
@@ -228,7 +206,6 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
 
   const formattedOrder = {
     ...orderObj,
-    items,
     readyItems,
     pendingItems,
     displayInfo: {
@@ -350,23 +327,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   res.status(200).json({
     statusCode: 200,
     success: true,
-    message: statusMessage,
-    order: {
-      ...orderResponse,
-      readyItems,
-      pendingItems,
-      displayInfo: {
-        pendingItemsCount: pendingItems.length,
-        readyItemsCount: readyItems.length,
-        totalItemsCount: orderResponse.items.length,
-        status: orderResponse.status,
-        paymentStatus: orderResponse.paymentStatus,
-        tableId: orderResponse.tableId?.tableId,
-        orderCode: orderResponse.orderCode,
-        totalPrice: orderResponse.totalPrice,
-        createdAt: orderResponse.createdAt
-      }
-    }
+    message: statusMessage
   });
 });
 
