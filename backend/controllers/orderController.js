@@ -61,7 +61,8 @@ const createOrder = asyncHandler(async (req, res) => {
     }
     totalPrice += food.price * item.quantity;
     itemsWithStatus.push({
-      ...item,
+      foodId: item.foodId,
+      quantity: item.quantity,
       status: 'pending', // Add status field to each item
       addedAt: new Date()
     });
@@ -141,18 +142,25 @@ const getOrders = asyncHandler(async (req, res) => {
   const formattedOrders = orders.map(order => {
     const orderObj = order.toObject();
     
+    // Ensure each item has a status field
+    const items = orderObj.items.map(item => ({
+      ...item,
+      status: item.status || 'pending' // Default to pending if status is missing
+    }));
+    
     // Separate items into ready and pending arrays
-    const readyItems = orderObj.items.filter(item => item.status === 'ready');
-    const pendingItems = orderObj.items.filter(item => item.status === 'pending');
+    const readyItems = items.filter(item => item.status === 'ready');
+    const pendingItems = items.filter(item => item.status === 'pending');
 
     return {
       ...orderObj,
+      items,
       readyItems,
       pendingItems,
       displayInfo: {
         pendingItemsCount: pendingItems.length,
         readyItemsCount: readyItems.length,
-        totalItemsCount: orderObj.items.length,
+        totalItemsCount: items.length,
         status: orderObj.status,
         paymentStatus: orderObj.paymentStatus,
         tableId: orderObj.tableId?.tableId,
@@ -198,18 +206,25 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
   // Format order for frontend display
   const orderObj = order.toObject();
   
+  // Ensure each item has a status field
+  const items = orderObj.items.map(item => ({
+    ...item,
+    status: item.status || 'pending' // Default to pending if status is missing
+  }));
+  
   // Separate items into ready and pending arrays
-  const readyItems = orderObj.items.filter(item => item.status === 'ready');
-  const pendingItems = orderObj.items.filter(item => item.status === 'pending');
+  const readyItems = items.filter(item => item.status === 'ready');
+  const pendingItems = items.filter(item => item.status === 'pending');
 
   const formattedOrder = {
     ...orderObj,
+    items,
     readyItems,
     pendingItems,
     displayInfo: {
       pendingItemsCount: pendingItems.length,
       readyItemsCount: readyItems.length,
-      totalItemsCount: orderObj.items.length,
+      totalItemsCount: items.length,
       status: orderObj.status,
       paymentStatus: orderObj.paymentStatus,
       tableId: orderObj.tableId?.tableId,
