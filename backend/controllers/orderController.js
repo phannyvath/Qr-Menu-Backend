@@ -157,8 +157,57 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
   });
 });
 
+// ✅ Update order payment status
+const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
+  const { orderCode, paymentStatus, paymentMethod } = req.body;
+
+  if (!orderCode || !paymentStatus) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Missing required fields (orderCode and paymentStatus)",
+    });
+  }
+
+  // Validate payment status
+  const validStatuses = ['pending', 'paid', 'failed', 'refunded'];
+  if (!validStatuses.includes(paymentStatus)) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Invalid payment status",
+    });
+  }
+
+  const order = await Order.findOne({ orderCode });
+  if (!order) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Order not found",
+    });
+  }
+
+  // Update the order
+  order.paymentStatus = paymentStatus;
+  if (paymentMethod) {
+    order.paymentMethod = paymentMethod;
+  }
+  order.status = paymentStatus === 'paid' ? 'completed' : 'pending';
+  
+  await order.save();
+
+  res.status(200).json({
+    statusCode: 200,
+    success: true,
+    message: "Order payment status updated successfully",
+    order,
+  });
+});
+
 module.exports = {
   order,
   getOrders,
   getCurrentOrderForTable,
+  updateOrderPaymentStatus,
 };

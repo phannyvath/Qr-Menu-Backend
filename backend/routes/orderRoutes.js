@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { order, getOrders } = require("../controllers/orderController");
+const { order, getOrders, getCurrentOrderForTable, updateOrderPaymentStatus } = require("../controllers/orderController");
 
 /**
  * @swagger
@@ -63,5 +63,34 @@ router.post("/order", order);
  */
 router.post("/getorder", getOrders);
 router.post("/getcurrentorder", getCurrentOrderForTable);
+
+/**
+ * @swagger
+ * /api/order/payment-status:
+ *   post:
+ *     tags: [Orders]
+ *     summary: Update order payment status
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - orderCode
+ *               - paymentStatus
+ *             properties:
+ *               orderCode:
+ *                 type: string
+ *               paymentStatus:
+ *                 type: string
+ *                 enum: [pending, paid, failed, refunded]
+ *               paymentMethod:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Order payment status updated successfully
+ */
+router.post("/payment-status", updateOrderPaymentStatus);
 
 module.exports = router;
