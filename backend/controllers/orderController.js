@@ -231,13 +231,13 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
 
 // ✅ Update order status and payment status
 const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
-  const { orderCode, orderStatus, paymentStatus, itemUpdates } = req.body;
+  const { orderCode, itemIds, status, paymentStatus } = req.body;
 
-  if (!orderCode || (!orderStatus && !paymentStatus && !itemUpdates)) {
+  if (!orderCode || (!status && !paymentStatus && !itemIds)) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Missing required fields (orderCode and either orderStatus, paymentStatus, or itemUpdates)",
+      message: "Missing required fields (orderCode and either status, paymentStatus, or itemIds)",
     });
   }
 
@@ -255,47 +255,15 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
 
   let statusMessage = '';
 
-  // Handle order status update first
-  if (orderStatus) {
-    order.status = orderStatus;
-    
-    // Update all pending items to match the order status
-    if (orderStatus === 'ready') {
-      order.items.forEach(item => {
-        if (item.status === 'pending') {
-          item.status = 'ready';
-        }
-      });
-      statusMessage = 'Order and all pending items marked as ready';
-    }
-    
-    if (orderStatus === 'completed' && order.paymentStatus === 'paid') {
-      if (order.tableId) {
-        await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
-      }
-    }
-  }
-
   // Handle item status updates
-  if (itemUpdates && itemUpdates.length > 0) {
-    // If updating to ready, update all pending items
-    if (itemUpdates[0].status === 'ready') {
-      order.items.forEach(item => {
-        if (item.status === 'pending') {
-          item.status = 'ready';
-        }
-      });
-      statusMessage = 'All pending items marked as ready';
-    } else {
-      // Otherwise update specific items
-      for (const update of itemUpdates) {
-        const item = order.items.id(update.itemId);
-        if (item) {
-          item.status = update.status;
-        }
+  if (itemIds && itemIds.length > 0 && status) {
+    // If updating to ready, update all specified items
+    order.items.forEach(item => {
+      if (itemIds.includes(item._id.toString())) {
+        item.status = status;
       }
-      statusMessage = 'Item statuses updated successfully';
-    }
+    });
+    statusMessage = `Selected items marked as ${status}`;
   }
 
   // Handle payment status update
@@ -304,12 +272,6 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     
     if (paymentStatus === 'paid') {
       order.status = 'completed';
-      // Update all pending items to ready when order is completed
-      order.items.forEach(item => {
-        if (item.status === 'pending') {
-          item.status = 'ready';
-        }
-      });
       statusMessage = 'Order completed and paid successfully';
       if (order.tableId) {
         await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
@@ -327,7 +289,12 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   res.status(200).json({
     statusCode: 200,
     success: true,
-    message: statusMessage
+    message: statusMessage,
+    order: {
+      ...orderResponse,
+      readyItems,
+      pendingItems
+    }
   });
 });
 
