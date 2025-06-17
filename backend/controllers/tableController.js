@@ -75,19 +75,6 @@ const updateTable = asyncHandler(async (req, res) => {
     });
   }
 
-  // Only check for duplicate tableId if it's being changed
-  if (tableId && tableId !== table.tableId) {
-    const existingTable = await Table.findOne({ tableId });
-    if (existingTable) {
-      return res.status(200).json({
-        statusCode: 201,
-        success: false,
-        message: "Table with this tableId already exists",
-      });
-    }
-    table.tableId = tableId;
-  }
-
   // Update other fields if provided
   if (type !== undefined) {
     table.type = type;
@@ -97,6 +84,10 @@ const updateTable = asyncHandler(async (req, res) => {
   }
   if (people !== undefined) {
     table.people = people;
+  }
+
+  if (tableId !== undefined) {
+    table.tableId = tableId;
   }
 
   await table.save();
@@ -157,12 +148,12 @@ const updateTableStatus = asyncHandler(async (req, res) => {
   }
 
   // Validate status
-  const validStatuses = ["Free", "Occupied", "Reserved"];
+  const validStatuses = ["Available", "Busy"];
   if (!validStatuses.includes(status)) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Invalid status. Must be one of: Free, Occupied, Reserved",
+      message: "Invalid status. Must be one of: Available, Busy",
     });
   }
 
