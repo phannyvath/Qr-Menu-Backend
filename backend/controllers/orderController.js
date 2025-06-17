@@ -200,26 +200,40 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
   });
 });
 
-// ✅ Update order payment status
+// ✅ Update order status and payment status
 const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
-  const { orderCode, paymentStatus } = req.body;
+  const { orderCode, orderStatus, paymentStatus } = req.body;
 
-  if (!orderCode || !paymentStatus) {
+  if (!orderCode || (!orderStatus && !paymentStatus)) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Missing required fields (orderCode and paymentStatus)",
+      message: "Missing required fields (orderCode and either orderStatus or paymentStatus)",
     });
   }
 
-  // Validate payment status
-  const validStatuses = ['pending', 'paid', 'cancelled'];
-  if (!validStatuses.includes(paymentStatus)) {
-    return res.status(200).json({
-      statusCode: 201,
-      success: false,
-      message: "Invalid payment status. Must be one of: pending, paid, cancelled",
-    });
+  // Validate payment status if provided
+  if (paymentStatus) {
+    const validPaymentStatuses = ['pending', 'paid', 'cancelled'];
+    if (!validPaymentStatuses.includes(paymentStatus)) {
+      return res.status(200).json({
+        statusCode: 201,
+        success: false,
+        message: "Invalid payment status. Must be one of: pending, paid, cancelled",
+      });
+    }
+  }
+
+  // Validate order status if provided
+  if (orderStatus) {
+    const validOrderStatuses = ['active', 'preparing', 'ready', 'completed', 'cancelled'];
+    if (!validOrderStatuses.includes(orderStatus)) {
+      return res.status(200).json({
+        statusCode: 201,
+        success: false,
+        message: "Invalid order status. Must be one of: active, preparing, ready, completed, cancelled",
+      });
+    }
   }
 
   const order = await Order.findOne({ orderCode })
@@ -234,12 +248,12 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     });
   }
 
-  // Prevent updating completed or cancelled orders
-  if (order.status === 'completed' || order.status === 'cancelled') {
+  // Prevent updating cancelled orders
+  if (order.status === 'cancelled') {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: `Cannot update ${order.status} order`,
+      message: "Cannot update cancelled order",
     });
   }
 
@@ -249,33 +263,109 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     paymentStatus: order.paymentStatus
   };
 
-  // Update payment status
-  order.paymentStatus = paymentStatus;
-  
-  // Update order status based on payment status
   let statusMessage = '';
-  switch (paymentStatus) {
-    case 'paid':
-      order.status = 'completed';
-      statusMessage = 'Order completed and paid successfully';
-      // Update table status to Free when order is completed
-      if (order.tableId) {
-        await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
-      }
-      break;
-    case 'cancelled':
-      order.status = 'cancelled';
-      statusMessage = 'Order has been cancelled';
-      // Update table status to Free when order is cancelled
-      if (order.tableId) {
-        await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
-      }
-      break;
-    case 'pending':
-      order.status = 'active';
-      statusMessage = 'Order is active and can be modified';
-      break;
+  let newOrderStatus = order.status;
+  let newPaymentStatus = order.paymentStatus;
+
+  // Handle payment status update
+  if (paymentStatus) {
+    // Prevent changing payment status if order is already paid
+    if (order.paymentStatus === 'paid' && paymentStatus !== 'paid') {
+      return res.status(200).json({
+        statusCode: 201,
+        success: false,
+        message: "Cannot change payment status of a paid order",
+      });
+    }
+
+    newPaymentStatus = paymentStatus;
+    
+    switch (paymentStatus) {
+      case 'paid':
+        // Only set to completed if order is ready
+        if (order.status === 'ready') {
+          newOrderStatus = 'completed';
+          statusMessage = 'Order completed and paid successfully';
+          // Update table status to Free when order is completed
+          if (order.tableId) {
+            await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+          }
+        } else {
+          statusMessage = 'Payment received, waiting for order to be ready';
+        }
+        break;
+      case 'cancelled':
+        newOrderStatus = 'cancelled';
+        statusMessage = 'Order has been cancelled';
+        // Update table status to Free when order is cancelled
+        if (order.tableId) {
+          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+        }
+        break;
+      case 'pending':
+        // Don't change order status for pending payment
+        statusMessage = 'Payment status set to pending';
+        break;
+    }
   }
+
+  // Handle order status update (only if not cancelled)
+  if (orderStatus && order.status !== 'cancelled') {
+    // Prevent changing order status if payment is already made
+    if (order.paymentStatus === 'paid' && orderStatus !== 'completed') {
+      return res.status(200).json({
+        statusCode: 201,
+        success: false,
+        message: "Cannot change status of a paid order",
+      });
+    }
+
+    newOrderStatus = orderStatus;
+    
+    switch (orderStatus) {
+      case 'active':
+        statusMessage = 'Order is active and can be modified';
+        break;
+      case 'preparing':
+        statusMessage = 'Order is being prepared';
+        break;
+      case 'ready':
+        statusMessage = 'Order is ready for payment';
+        // If already paid, mark as completed
+        if (order.paymentStatus === 'paid') {
+          newOrderStatus = 'completed';
+          statusMessage = 'Order completed and paid successfully';
+          if (order.tableId) {
+            await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+          }
+        }
+        break;
+      case 'completed':
+        // Only allow if payment is made
+        if (order.paymentStatus !== 'paid') {
+          return res.status(200).json({
+            statusCode: 201,
+            success: false,
+            message: "Cannot mark order as completed without payment",
+          });
+        }
+        statusMessage = 'Order is completed';
+        if (order.tableId) {
+          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+        }
+        break;
+      case 'cancelled':
+        statusMessage = 'Order has been cancelled';
+        if (order.tableId) {
+          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
+        }
+        break;
+    }
+  }
+
+  // Update the order
+  order.status = newOrderStatus;
+  order.paymentStatus = newPaymentStatus;
 
   // Add status history
   if (!order.statusHistory) {
