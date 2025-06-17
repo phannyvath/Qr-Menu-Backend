@@ -63,7 +63,7 @@ const createOrder = asyncHandler(async (req, res) => {
     itemsWithStatus.push({
       foodId: item.foodId,
       quantity: item.quantity,
-      status: 'pending', // Add status field to each item
+      status: 'pending',
       addedAt: new Date()
     });
   }
@@ -244,13 +244,13 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
 
 // ✅ Update order status and payment status
 const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
-  const { orderCode, orderStatus, paymentStatus, itemIds } = req.body;
+  const { orderCode, orderStatus, paymentStatus, itemUpdates } = req.body;
 
-  if (!orderCode || (!orderStatus && !paymentStatus && !itemIds)) {
+  if (!orderCode || (!orderStatus && !paymentStatus && !itemUpdates)) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Missing required fields (orderCode and either orderStatus, paymentStatus, or itemIds)",
+      message: "Missing required fields (orderCode and either orderStatus, paymentStatus, or itemUpdates)",
     });
   }
 
@@ -266,133 +266,70 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     });
   }
 
-  // Prevent updating cancelled orders
-  if (order.status === 'cancelled') {
-    return res.status(200).json({
-      statusCode: 201,
-      success: false,
-      message: "Cannot update cancelled order",
-    });
-  }
-
   let statusMessage = '';
-  let newOrderStatus = order.status;
-  let newPaymentStatus = order.paymentStatus;
 
   // Handle item status updates
-  if (itemIds && itemIds.length > 0) {
-    order.items.forEach(item => {
-      if (itemIds.includes(item._id.toString())) {
-        item.status = 'ready'; // Mark specific items as ready
+  if (itemUpdates && itemUpdates.length > 0) {
+    for (const update of itemUpdates) {
+      const item = order.items.id(update.itemId);
+      if (item) {
+        item.status = update.status;
       }
-    });
-    statusMessage = 'Selected items marked as ready';
+    }
+    statusMessage = 'Item statuses updated successfully';
   }
 
   // Handle payment status update
   if (paymentStatus) {
-    // Prevent changing payment status if order is already paid
-    if (order.paymentStatus === 'paid' && paymentStatus !== 'paid') {
-      return res.status(200).json({
-        statusCode: 201,
-        success: false,
-        message: "Cannot change payment status of a paid order",
-      });
-    }
-
-    newPaymentStatus = paymentStatus;
+    order.paymentStatus = paymentStatus;
     
-    switch (paymentStatus) {
-      case 'paid':
-        // When payment is made, automatically complete the order
-        newOrderStatus = 'completed';
-        statusMessage = 'Order completed and paid successfully';
-        // Update table status to Available when order is completed
-        if (order.tableId) {
-          await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
-        }
-        break;
-      case 'cancelled':
-        // When payment is cancelled, automatically cancel the order
-        newOrderStatus = 'cancelled';
-        statusMessage = 'Order and payment have been cancelled';
-        // Update table status to Available when order is cancelled
-        if (order.tableId) {
-          await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
-        }
-        break;
-      case 'pending':
-        // Don't change order status for pending payment
-        statusMessage = 'Payment status set to pending';
-        break;
+    if (paymentStatus === 'paid') {
+      order.status = 'completed';
+      statusMessage = 'Order completed and paid successfully';
+      if (order.tableId) {
+        await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
+      }
     }
   }
 
-  // Handle order status update (only if not cancelled)
-  if (orderStatus && order.status !== 'cancelled') {
-    // Prevent changing order status if payment is already made
-    if (order.paymentStatus === 'paid' && orderStatus !== 'completed') {
-      return res.status(200).json({
-        statusCode: 201,
-        success: false,
-        message: "Cannot change status of a paid order",
-      });
-    }
-
-    newOrderStatus = orderStatus;
+  // Handle order status update
+  if (orderStatus) {
+    order.status = orderStatus;
     
-    switch (orderStatus) {
-      case 'pending':
-        statusMessage = 'Order is pending';
-        break;
-      case 'preparing':
-        statusMessage = 'Order is being prepared';
-        break;
-      case 'ready':
-        statusMessage = 'Order is ready for payment';
-        // If already paid, mark as completed
-        if (order.paymentStatus === 'paid') {
-          newOrderStatus = 'completed';
-          statusMessage = 'Order completed and paid successfully';
-          if (order.tableId) {
-            await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
-          }
-        }
-        break;
-      case 'completed':
-        // Only allow if payment is made
-        if (order.paymentStatus !== 'paid') {
-          return res.status(200).json({
-            statusCode: 201,
-            success: false,
-            message: "Cannot mark order as completed without payment",
-          });
-        }
-        statusMessage = 'Order is completed';
-        if (order.tableId) {
-          await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
-        }
-        break;
-      case 'cancelled':
-        // When order is cancelled, automatically cancel the payment
-        newPaymentStatus = 'cancelled';
-        statusMessage = 'Order and payment have been cancelled';
-        if (order.tableId) {
-          await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
-        }
-        break;
+    if (orderStatus === 'completed' && order.paymentStatus === 'paid') {
+      if (order.tableId) {
+        await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
+      }
     }
   }
 
-  // Update the order
-  order.status = newOrderStatus;
-  order.paymentStatus = newPaymentStatus;
   await order.save();
+
+  // Format the response
+  const orderResponse = order.toObject();
+  const readyItems = orderResponse.items.filter(item => item.status === 'ready');
+  const pendingItems = orderResponse.items.filter(item => item.status === 'pending');
 
   res.status(200).json({
     statusCode: 200,
     success: true,
     message: statusMessage,
+    order: {
+      ...orderResponse,
+      readyItems,
+      pendingItems,
+      displayInfo: {
+        pendingItemsCount: pendingItems.length,
+        readyItemsCount: readyItems.length,
+        totalItemsCount: orderResponse.items.length,
+        status: orderResponse.status,
+        paymentStatus: orderResponse.paymentStatus,
+        tableId: orderResponse.tableId?.tableId,
+        orderCode: orderResponse.orderCode,
+        totalPrice: orderResponse.totalPrice,
+        createdAt: orderResponse.createdAt
+      }
+    }
   });
 });
 
