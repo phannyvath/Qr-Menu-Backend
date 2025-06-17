@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { order, getOrders, getCurrentOrderForTable, updateOrderPaymentStatus } = require("../controllers/orderController");
+const { createOrder, getOrders, getCurrentOrderForTable, updateOrderPaymentStatus } = require("../controllers/orderController");
 
 /**
  * @swagger
@@ -36,7 +36,7 @@ const { order, getOrders, getCurrentOrderForTable, updateOrderPaymentStatus } = 
  *       200:
  *         description: Order placed successfully
  */
-router.post("/order", order);
+router.post("/order", createOrder);
 
 /**
  * @swagger
