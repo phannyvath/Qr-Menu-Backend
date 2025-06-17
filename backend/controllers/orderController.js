@@ -156,18 +156,16 @@ const getOrders = asyncHandler(async (req, res) => {
   const formattedOrders = orders.map(order => {
     const orderObj = order.toObject();
     
-    // Separate items into ready and new
-    const readyItems = orderObj.items.filter(item => item.status === 'ready');
-    const newItems = orderObj.items.filter(item => item.status === 'pending');
+    // Count items by status
+    const pendingItemsCount = orderObj.items.filter(item => item.status === 'pending').length;
+    const readyItemsCount = orderObj.items.filter(item => item.status === 'ready').length;
 
     return {
       ...orderObj,
-      readyItems,
-      newItems,
       displayInfo: {
-        hasNewItems: newItems.length > 0,
-        newItemsCount: newItems.length,
-        readyItemsCount: readyItems.length,
+        hasNewItems: pendingItemsCount > 0,
+        pendingItemsCount,
+        readyItemsCount,
         totalItemsCount: orderObj.items.length,
         status: orderObj.status,
         paymentStatus: orderObj.paymentStatus,
@@ -215,18 +213,16 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
   // Format order for frontend display
   const orderObj = order.toObject();
   
-  // Separate items into ready and new
-  const readyItems = orderObj.items.filter(item => item.status === 'ready');
-  const newItems = orderObj.items.filter(item => item.status === 'pending');
+  // Count items by status
+  const pendingItemsCount = orderObj.items.filter(item => item.status === 'pending').length;
+  const readyItemsCount = orderObj.items.filter(item => item.status === 'ready').length;
 
   const formattedOrder = {
     ...orderObj,
-    readyItems,
-    newItems,
     displayInfo: {
-      hasNewItems: newItems.length > 0,
-      newItemsCount: newItems.length,
-      readyItemsCount: readyItems.length,
+      hasNewItems: pendingItemsCount > 0,
+      pendingItemsCount,
+      readyItemsCount,
       totalItemsCount: orderObj.items.length,
       status: orderObj.status,
       paymentStatus: orderObj.paymentStatus,
@@ -357,8 +353,6 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
         break;
       case 'preparing':
         statusMessage = 'Order is being prepared';
-        // Reset hasNewItems flag when order status changes to preparing
-        order.hasNewItems = false;
         break;
       case 'ready':
         statusMessage = 'Order is ready for payment';
@@ -415,10 +409,10 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   
   await order.save();
 
-  // Format the response to separate ready and new items
+  // Format the response
   const orderResponse = order.toObject();
-  const readyItems = orderResponse.items.filter(item => item.status === 'ready');
-  const newItems = orderResponse.items.filter(item => item.status === 'pending');
+  const pendingItemsCount = orderResponse.items.filter(item => item.status === 'pending').length;
+  const readyItemsCount = orderResponse.items.filter(item => item.status === 'ready').length;
 
   res.status(200).json({
     statusCode: 200,
@@ -426,12 +420,10 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     message: statusMessage,
     order: {
       ...orderResponse,
-      readyItems,
-      newItems,
       displayInfo: {
-        hasNewItems: newItems.length > 0,
-        newItemsCount: newItems.length,
-        readyItemsCount: readyItems.length,
+        hasNewItems: pendingItemsCount > 0,
+        pendingItemsCount,
+        readyItemsCount,
         totalItemsCount: orderResponse.items.length,
         status: orderResponse.status,
         paymentStatus: orderResponse.paymentStatus,
