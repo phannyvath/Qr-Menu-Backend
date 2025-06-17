@@ -27,7 +27,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
   const webID = user.webID;
 
-  // Check if table exists and is available
+  // Check if table exists
   const table = await Table.findById(tableId);
   if (!table) {
     return res.status(200).json({
@@ -36,6 +36,12 @@ const createOrder = asyncHandler(async (req, res) => {
       message: "Table not found",
     });
   }
+
+  // Check for existing pending order for this table
+  let order = await Order.findOne({ 
+    tableId, 
+    paymentStatus: 'pending'
+  }).populate("items.foodId", "foodName price");
 
   // Calculate total price and prepare items with status
   let totalPrice = 0;
@@ -60,22 +66,34 @@ const createOrder = asyncHandler(async (req, res) => {
     });
   }
 
-  // Generate order code
-  const orderCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  if (order) {
+    // Add new items to existing order
+    // Ensure new items are always pending regardless of order status
+    const newItems = itemsWithStatus.map(item => ({
+      ...item,
+      status: 'pending' // Force status to pending for new items
+    }));
+    order.items.push(...newItems);
+    order.totalPrice += totalPrice;
+    await order.save();
+  } else {
+    // Generate order code for new order
+    const orderCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-  // Create order with items having status
-  const order = await Order.create({
-    tableId,
-    items: itemsWithStatus,
-    totalPrice,
-    orderCode,
-    webID,
-    status: 'pending',
-    paymentStatus: 'pending'
-  });
+    // Create new order
+    order = await Order.create({
+      tableId,
+      items: itemsWithStatus,
+      totalPrice,
+      orderCode,
+      webID,
+      status: 'pending',
+      paymentStatus: 'pending'
+    });
 
-  // Update table status to busy
-  await Table.findByIdAndUpdate(tableId, { status: 'busy' });
+    // Update table status to busy
+    await Table.findByIdAndUpdate(tableId, { status: 'busy' });
+  }
 
   // Format the response
   const orderResponse = order.toObject();
@@ -85,7 +103,7 @@ const createOrder = asyncHandler(async (req, res) => {
   res.status(200).json({
     statusCode: 200,
     success: true,
-    message: "Order created successfully",
+    message: order ? "Items added to existing order" : "New order created successfully",
     order: {
       ...orderResponse,
       readyItems,
