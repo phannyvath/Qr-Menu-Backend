@@ -60,7 +60,7 @@ const createOrder = asyncHandler(async (req, res) => {
   }
 
   // Generate order code
-  const orderCode = generateOrderCode();
+  const orderCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
   // Create order with items having status
   const order = await Order.create({
