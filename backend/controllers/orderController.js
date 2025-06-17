@@ -5,27 +5,16 @@ const Table = require("../models/tableModel");
 const User = require("../models/User");
 
 // ✅ Create Order
-const order = asyncHandler(async (req, res) => {
-  const { username, items, tableId } = req.body;
+const createOrder = asyncHandler(async (req, res) => {
+  const { tableId, items, webID } = req.body;
 
-  if (!items?.length || !tableId) {
+  if (!tableId || !items || !webID) {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "Missing required fields",
+      message: "Missing required fields (tableId, items, webID)",
     });
   }
-
-  const user = await User.findOne({ username: { $regex: `^${username}$`, $options: 'i' } });
-  if (!user) {
-    return res.status(200).json({
-      statusCode: 201,
-      success: false,
-      message: "User not found",
-    });
-  }
-
-  const webID = user.webID;
 
   // Check if table exists and is available
   const table = await Table.findById(tableId);
@@ -37,94 +26,74 @@ const order = asyncHandler(async (req, res) => {
     });
   }
 
-  // Check for an active order for this table (not completed or cancelled)
-  let openOrder = await Order.findOne({ 
-    tableId, 
-    status: { $nin: ['completed', 'cancelled'] }
-  });
-
-  // Prepare food validation
-  const foodIds = items.map(item => item.foodId);
-  const foodDocs = await Food.find({ _id: { $in: foodIds }, webID: webID });
-
-  if (foodDocs.length !== items.length) {
+  if (table.status !== 'available') {
     return res.status(200).json({
       statusCode: 201,
       success: false,
-      message: "One or more food items are invalid",
+      message: "Table is not available",
     });
   }
 
-  // Calculate total price for new items
-  let newItemsTotal = 0;
-  const enrichedItems = items.map(item => {
-    const food = foodDocs.find(f => f._id.toString() === item.foodId);
-    const subtotal = food.price * item.quantity;
-    newItemsTotal += subtotal;
-    return {
-      foodId: item.foodId,
-      quantity: item.quantity,
-      addedAt: new Date(),
-      status: 'pending' // Add status for each item
-    };
+  // Calculate total price
+  let totalPrice = 0;
+  for (const item of items) {
+    const food = await Food.findById(item.foodId);
+    if (!food) {
+      return res.status(200).json({
+        statusCode: 201,
+        success: false,
+        message: `Food item ${item.foodId} not found`,
+      });
+    }
+    totalPrice += food.price * item.quantity;
+  }
+
+  // Generate order code
+  const orderCode = generateOrderCode();
+
+  // Create order with items having status
+  const order = await Order.create({
+    tableId,
+    items: items.map(item => ({
+      ...item,
+      status: 'pending' // Set initial status as pending
+    })),
+    totalPrice,
+    orderCode,
+    webID,
+    status: 'pending',
+    paymentStatus: 'pending'
   });
 
-  if (openOrder) {
-    // Merge new items into existing order
-    for (const newItem of enrichedItems) {
-      const existing = openOrder.items.find(i => i.foodId.toString() === newItem.foodId);
-      if (existing) {
-        existing.quantity += newItem.quantity;
-        existing.addedAt = new Date();
-        existing.status = 'pending'; // Reset status for updated items
-      } else {
-        openOrder.items.push(newItem);
+  // Update table status to busy
+  await Table.findByIdAndUpdate(tableId, { status: 'busy' });
+
+  // Format the response
+  const orderResponse = order.toObject();
+  const readyItems = orderResponse.items.filter(item => item.status === 'ready');
+  const pendingItems = orderResponse.items.filter(item => item.status === 'pending');
+
+  res.status(200).json({
+    statusCode: 200,
+    success: true,
+    message: "Order created successfully",
+    order: {
+      ...orderResponse,
+      readyItems,
+      pendingItems,
+      displayInfo: {
+        pendingItemsCount: pendingItems.length,
+        readyItemsCount: readyItems.length,
+        totalItemsCount: orderResponse.items.length,
+        status: orderResponse.status,
+        paymentStatus: orderResponse.paymentStatus,
+        tableId: orderResponse.tableId?.tableId,
+        orderCode: orderResponse.orderCode,
+        totalPrice: orderResponse.totalPrice,
+        createdAt: orderResponse.createdAt
       }
     }
-    openOrder.totalPrice += newItemsTotal;
-    openOrder.hasNewItems = true;
-    await openOrder.save();
-
-    return res.status(200).json({
-      statusCode: 200,
-      success: true,
-      message: "Order updated successfully. You can continue adding items until payment is made.",
-      order: openOrder,
-    });
-  } else {
-    // Create a new order
-    const { nanoid } = await import("nanoid");
-    const orderCode = nanoid(8);
-
-    // Update table status to Busy
-    await Table.findByIdAndUpdate(tableId, { status: 'Busy' });
-
-    const newOrder = await Order.create({
-      orderCode,
-      webID: webID,
-      tableId,
-      items: enrichedItems,
-      totalPrice: newItemsTotal,
-      status: 'pending',
-      paymentStatus: 'pending',
-      hasNewItems: true,
-      statusHistory: [{
-        timestamp: new Date(),
-        previousStatus: null,
-        newStatus: {
-          orderStatus: 'pending',
-          paymentStatus: 'pending'
-        }
-      }]
-    });
-
-    return res.status(200).json({
-      statusCode: 200,
-      success: true,
-      message: "Order placed successfully. You can continue adding items until payment is made.",
-      order: newOrder,
-    });
-  }
+  });
 });
 
 // ✅ Get Orders strictly by webID
@@ -165,7 +134,6 @@ const getOrders = asyncHandler(async (req, res) => {
       readyItems,
       pendingItems,
       displayInfo: {
-        hasNewItems: pendingItems.length > 0,
         pendingItemsCount: pendingItems.length,
         readyItemsCount: readyItems.length,
         totalItemsCount: orderObj.items.length,
@@ -174,8 +142,7 @@ const getOrders = asyncHandler(async (req, res) => {
         tableId: orderObj.tableId?.tableId,
         orderCode: orderObj.orderCode,
         totalPrice: orderObj.totalPrice,
-        createdAt: orderObj.createdAt,
-        lastUpdated: orderObj.statusHistory[orderObj.statusHistory.length - 1]?.timestamp || orderObj.createdAt
+        createdAt: orderObj.createdAt
       }
     };
   });
@@ -224,7 +191,6 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
     readyItems,
     pendingItems,
     displayInfo: {
-      hasNewItems: pendingItems.length > 0,
       pendingItemsCount: pendingItems.length,
       readyItemsCount: readyItems.length,
       totalItemsCount: orderObj.items.length,
@@ -233,8 +199,7 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
       tableId: orderObj.tableId?.tableId,
       orderCode: orderObj.orderCode,
       totalPrice: orderObj.totalPrice,
-      createdAt: orderObj.createdAt,
-      lastUpdated: orderObj.statusHistory[orderObj.statusHistory.length - 1]?.timestamp || orderObj.createdAt
+      createdAt: orderObj.createdAt
     }
   };
 
@@ -278,12 +243,6 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
       message: "Cannot update cancelled order",
     });
   }
-
-  // Store previous status for history
-  const previousStatus = {
-    orderStatus: order.status,
-    paymentStatus: order.paymentStatus
-  };
 
   let statusMessage = '';
   let newOrderStatus = order.status;
@@ -397,20 +356,6 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   // Update the order
   order.status = newOrderStatus;
   order.paymentStatus = newPaymentStatus;
-
-  // Add status history
-  if (!order.statusHistory) {
-    order.statusHistory = [];
-  }
-  order.statusHistory.push({
-    timestamp: new Date(),
-    previousStatus,
-    newStatus: {
-      orderStatus: order.status,
-      paymentStatus: order.paymentStatus
-    }
-  });
-  
   await order.save();
 
   // Format the response
@@ -427,7 +372,6 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
       readyItems,
       pendingItems,
       displayInfo: {
-        hasNewItems: pendingItems.length > 0,
         pendingItemsCount: pendingItems.length,
         readyItemsCount: readyItems.length,
         totalItemsCount: orderResponse.items.length,
@@ -436,15 +380,14 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
         tableId: orderResponse.tableId?.tableId,
         orderCode: orderResponse.orderCode,
         totalPrice: orderResponse.totalPrice,
-        createdAt: orderResponse.createdAt,
-        lastUpdated: orderResponse.statusHistory[orderResponse.statusHistory.length - 1]?.timestamp || orderResponse.createdAt
+        createdAt: orderResponse.createdAt
       }
     }
   });
 });
 
 module.exports = {
-  order,
+  createOrder,
   getOrders,
   getCurrentOrderForTable,
   updateOrderPaymentStatus,
