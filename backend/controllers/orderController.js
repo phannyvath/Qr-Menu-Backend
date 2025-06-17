@@ -37,14 +37,6 @@ const createOrder = asyncHandler(async (req, res) => {
     });
   }
 
-  if (table.status !== 'available') {
-    return res.status(200).json({
-      statusCode: 201,
-      success: false,
-      message: "Table is not available",
-    });
-  }
-
   // Calculate total price and prepare items with status
   let totalPrice = 0;
   const itemsWithStatus = [];
