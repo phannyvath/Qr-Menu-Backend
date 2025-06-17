@@ -114,13 +114,13 @@ const order = asyncHandler(async (req, res) => {
       tableId,
       items: enrichedItems,
       totalPrice: newItemsTotal,
-      status: 'active',
+      status: 'pending',
       paymentStatus: 'pending',
       statusHistory: [{
         timestamp: new Date(),
         previousStatus: null,
         newStatus: {
-          orderStatus: 'active',
+          orderStatus: 'pending',
           paymentStatus: 'pending'
         }
       }]
@@ -226,12 +226,12 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
 
   // Validate order status if provided
   if (orderStatus) {
-    const validOrderStatuses = ['active', 'preparing', 'ready', 'completed', 'cancelled'];
+    const validOrderStatuses = ['pending', 'preparing', 'ready', 'completed', 'cancelled'];
     if (!validOrderStatuses.includes(orderStatus)) {
       return res.status(200).json({
         statusCode: 201,
         success: false,
-        message: "Invalid order status. Must be one of: active, preparing, ready, completed, cancelled",
+        message: "Invalid order status. Must be one of: pending, preparing, ready, completed, cancelled",
       });
     }
   }
@@ -282,21 +282,18 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     
     switch (paymentStatus) {
       case 'paid':
-        // Only set to completed if order is ready
-        if (order.status === 'ready') {
-          newOrderStatus = 'completed';
-          statusMessage = 'Order completed and paid successfully';
-          // Update table status to Free when order is completed
-          if (order.tableId) {
-            await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
-          }
-        } else {
-          statusMessage = 'Payment received, waiting for order to be ready';
+        // When payment is made, automatically complete the order
+        newOrderStatus = 'completed';
+        statusMessage = 'Order completed and paid successfully';
+        // Update table status to Free when order is completed
+        if (order.tableId) {
+          await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
         }
         break;
       case 'cancelled':
+        // When payment is cancelled, automatically cancel the order
         newOrderStatus = 'cancelled';
-        statusMessage = 'Order has been cancelled';
+        statusMessage = 'Order and payment have been cancelled';
         // Update table status to Free when order is cancelled
         if (order.tableId) {
           await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
@@ -323,8 +320,8 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     newOrderStatus = orderStatus;
     
     switch (orderStatus) {
-      case 'active':
-        statusMessage = 'Order is active and can be modified';
+      case 'pending':
+        statusMessage = 'Order is pending';
         break;
       case 'preparing':
         statusMessage = 'Order is being prepared';
@@ -355,7 +352,9 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
         }
         break;
       case 'cancelled':
-        statusMessage = 'Order has been cancelled';
+        // When order is cancelled, automatically cancel the payment
+        newPaymentStatus = 'cancelled';
+        statusMessage = 'Order and payment have been cancelled';
         if (order.tableId) {
           await Table.findByIdAndUpdate(order.tableId._id, { status: 'Free' });
         }
