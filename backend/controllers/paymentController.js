@@ -27,8 +27,6 @@ const createPayment = asyncHandler(async (req, res) => {
     metadata: { orderCode: order.orderCode },
   });
 
-  // Update the order with the payment method info
-  order.paymentMethod = "credit_card";
   await order.save();
 
   res.status(200).json({

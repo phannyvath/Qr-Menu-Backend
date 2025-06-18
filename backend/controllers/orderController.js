@@ -114,43 +114,26 @@ const createOrder = asyncHandler(async (req, res) => {
 
   // Format the response
   const orderResponse = order.toObject();
-  const readyItems = orderResponse.items.filter(item => item.status === 'ready');
-  const pendingItems = orderResponse.items.filter(item => item.status === 'pending');
-  const completedItems = orderResponse.items.filter(item => item.status === 'completed');
+  // Only use tableId as a primitive (number or string)
+  const tableIdValue = orderResponse.tableId?.tableId || orderResponse.tableId;
 
-  // Calculate separate totals
-  const calculateTotal = (items) => {
-    return items.reduce((total, item) => {
-      const price = item.foodId?.price || 0;
-      const quantity = item.quantity || 0;
-      return total + (price * quantity);
-    }, 0);
-  };
-
-  const readyTotal = calculateTotal(readyItems);
-  const pendingTotal = calculateTotal(pendingItems);
-  const completedTotal = calculateTotal(completedItems);
+  // Add totalPrice to each item in readyItems and pendingItems
+  const readyItems = orderResponse.items
+    .filter(item => item.status === 'ready')
+    .map(item => ({
+      ...item,
+      totalPrice: (item.foodId?.price || 0) * (item.quantity || 0)
+    }));
+  const pendingItems = orderResponse.items
+    .filter(item => item.status === 'pending')
+    .map(item => ({
+      ...item,
+      totalPrice: (item.foodId?.price || 0) * (item.quantity || 0)
+    }));
 
   res.status(200).json({
-    statusCode: 200,
     success: true,
-    message: order ? "Items added to existing order" : "New order created successfully",
-    order: {
-      orderCode: orderResponse.orderCode,
-      tableId: orderResponse.tableId,
-      totalPrice: pendingTotal, // Use pending total as the main totalPrice
-      status: orderResponse.status,
-      paymentStatus: orderResponse.paymentStatus,
-      readyItems,
-      pendingItems,
-      completedItems,
-      totals: {
-        ready: readyTotal,
-        pending: pendingTotal,
-        completed: completedTotal,
-        overall: orderResponse.totalPrice
-      }
-    }
+    message: order ? "Items added to existing order" : "New order created successfully"
   });
 });
 
@@ -169,7 +152,7 @@ const getOrders = asyncHandler(async (req, res) => {
 
   const orders = await Order.find({ webID: numericWebID })
     .populate("items.foodId", "foodName price")
-    .populate("tableId", "type status people tableId");
+    .populate("tableId", "tableId");
 
   if (!orders.length) {
     return res.status(200).json({
@@ -182,40 +165,33 @@ const getOrders = asyncHandler(async (req, res) => {
   // Format orders for frontend display
   const formattedOrders = orders.map(order => {
     const orderObj = order.toObject();
-    
-    // Ensure each item has a status field
-    const items = orderObj.items.map(item => ({
-      ...item,
-      status: item.status || 'pending' // Default to pending if status is missing
-    }));
-    
-    // Separate items into ready and pending arrays
-    const readyItems = items.filter(item => item.status === 'ready');
-    const pendingItems = items.filter(item => item.status === 'pending');
-
+    const tableIdValue = orderObj.tableId?.tableId || orderObj.tableId;
+    const readyItems = orderObj.items
+      .filter(item => item.status === 'ready')
+      .map(item => ({
+        ...item,
+        totalPrice: (item.foodId?.price || 0) * (item.quantity || 0)
+      }));
+    const pendingItems = orderObj.items
+      .filter(item => item.status === 'pending')
+      .map(item => ({
+        ...item,
+        totalPrice: (item.foodId?.price || 0) * (item.quantity || 0)
+      }));
     return {
-      ...orderObj,
+      orderCode: orderObj.orderCode,
+      webID: orderObj.webID,
+      tableId: tableIdValue,
+      status: orderObj.status,
+      paymentStatus: orderObj.paymentStatus,
+      createdAt: orderObj.createdAt,
       readyItems,
-      pendingItems,
-      displayInfo: {
-        pendingItemsCount: pendingItems.length,
-        readyItemsCount: readyItems.length,
-        totalItemsCount: items.length,
-        status: orderObj.status,
-        paymentStatus: orderObj.paymentStatus,
-        tableId: orderObj.tableId?.tableId,
-        orderCode: orderObj.orderCode,
-        totalPrice: orderObj.totalPrice,
-        createdAt: orderObj.createdAt
-      }
+      pendingItems
     };
   });
 
   res.status(200).json({
-    statusCode: 200,
-    success: true,
-    message: "Orders retrieved successfully",
-    orders: formattedOrders,
+    orders: formattedOrders
   });
 });
 
@@ -233,7 +209,7 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
   const order = await Order.findOne({ tableId, paymentStatus: { $ne: 'paid' } })
     .sort({ createdAt: -1 })
     .populate("items.foodId", "foodName price")
-    .populate("tableId", "type status people");
+    .populate("tableId", "tableId");
 
   if (!order) {
     return res.status(200).json({
@@ -243,41 +219,30 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
     });
   }
 
-  // Format order for frontend display
   const orderObj = order.toObject();
-  
-  // Ensure each item has a status field
-  const items = orderObj.items.map(item => ({
-    ...item,
-    status: item.status || 'pending' // Default to pending if status is missing
-  }));
-  
-  // Separate items into ready and pending arrays
-  const readyItems = items.filter(item => item.status === 'ready');
-  const pendingItems = items.filter(item => item.status === 'pending');
-
-  const formattedOrder = {
-    ...orderObj,
-    readyItems,
-    pendingItems,
-    displayInfo: {
-      pendingItemsCount: pendingItems.length,
-      readyItemsCount: readyItems.length,
-      totalItemsCount: items.length,
-      status: orderObj.status,
-      paymentStatus: orderObj.paymentStatus,
-      tableId: orderObj.tableId?.tableId,
-      orderCode: orderObj.orderCode,
-      totalPrice: orderObj.totalPrice,
-      createdAt: orderObj.createdAt
-    }
-  };
+  const tableIdValue = orderObj.tableId?.tableId || orderObj.tableId;
+  const readyItems = orderObj.items
+    .filter(item => item.status === 'ready')
+    .map(item => ({
+      ...item,
+      totalPrice: (item.foodId?.price || 0) * (item.quantity || 0)
+    }));
+  const pendingItems = orderObj.items
+    .filter(item => item.status === 'pending')
+    .map(item => ({
+      ...item,
+      totalPrice: (item.foodId?.price || 0) * (item.quantity || 0)
+    }));
 
   res.status(200).json({
-    statusCode: 200,
-    success: true,
-    message: "Current unpaid order retrieved successfully",
-    order: formattedOrder,
+    orderCode: orderObj.orderCode,
+    webID: orderObj.webID,
+    tableId: tableIdValue,
+    status: orderObj.status,
+    paymentStatus: orderObj.paymentStatus,
+    createdAt: orderObj.createdAt,
+    readyItems,
+    pendingItems
   });
 });
 
@@ -392,25 +357,8 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   const cancelledTotal = calculateTotal(cancelledItems);
 
   res.status(200).json({
-    statusCode: 200,
     success: true,
-    message: statusMessage || "Order updated successfully",
-    order: {
-      orderCode: orderResponse.orderCode,
-      tableId: orderResponse.tableId?.tableId,
-      totalPrice: pendingTotal,
-      status: orderResponse.status,
-      paymentStatus: orderResponse.paymentStatus,
-      readyItems,
-      pendingItems,
-      cancelledItems,
-      totals: {
-        ready: readyTotal,
-        pending: pendingTotal,
-        cancelled: cancelledTotal,
-        overall: orderResponse.totalPrice
-      }
-    }
+    message: statusMessage || "Order updated successfully"
   });
 });
 
