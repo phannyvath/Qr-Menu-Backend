@@ -133,6 +133,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
+    statusCode: 200,
     message: order ? "Items added to existing order" : "New order created successfully"
   });
 });
@@ -283,9 +284,9 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     let updatedCount = 0;
     const updatedItems = [];
 
-    // First, update the status of selected items
+    // First, update the status of selected items, but only if currently pending
     order.items.forEach(item => {
-      if (itemIds.includes(item._id.toString())) {
+      if (itemIds.includes(item._id.toString()) && item.status === 'pending') {
         item.status = status;
         updatedItems.push(item);
         updatedCount++;
@@ -329,10 +330,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     order.paymentStatus = paymentStatus;
     
     if (paymentStatus === 'paid') {
-      // Update all items to completed when paid
-      order.items.forEach(item => {
-        item.status = 'completed';
-      });
+      // Only set order.status to completed, do not change item statuses
       order.status = 'completed';
       statusMessage = 'Order completed and paid successfully';
       if (order.tableId) {
@@ -364,6 +362,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
+    statusCode: 200,
     message: statusMessage || "Order updated successfully"
   });
 });
