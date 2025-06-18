@@ -10,7 +10,7 @@ const orderSchema = new mongoose.Schema({
       quantity: { type: Number, required: true },
       status: { 
         type: String, 
-        enum: ['pending', 'preparing', 'ready', 'served'],
+        enum: ['pending', 'ready', 'cancelled'],
         default: 'pending'
       },
       addedAt: { type: Date, default: Date.now }
@@ -18,8 +18,7 @@ const orderSchema = new mongoose.Schema({
   ],
   totalPrice: { type: Number, required: true },
   status: { type: String, default: "pending" },
-  paymentStatus: { type: String, default: "pending" },
-  paymentMethod: { type: String, default: "credit_card" },
+  paymentStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' },
   transactionId: { type: String },
   createdAt: { type: Date, default: Date.now }
 });

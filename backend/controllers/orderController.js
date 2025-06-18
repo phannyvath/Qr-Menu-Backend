@@ -376,7 +376,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   const orderResponse = order.toObject();
   const readyItems = orderResponse.items.filter(item => item.status === 'ready');
   const pendingItems = orderResponse.items.filter(item => item.status === 'pending');
-  const completedItems = orderResponse.items.filter(item => item.status === 'completed');
+  const cancelledItems = orderResponse.items.filter(item => item.status === 'cancelled');
 
   // Calculate separate totals
   const calculateTotal = (items) => {
@@ -389,7 +389,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
 
   const readyTotal = calculateTotal(readyItems);
   const pendingTotal = calculateTotal(pendingItems);
-  const completedTotal = calculateTotal(completedItems);
+  const cancelledTotal = calculateTotal(cancelledItems);
 
   res.status(200).json({
     statusCode: 200,
@@ -403,11 +403,11 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
       paymentStatus: orderResponse.paymentStatus,
       readyItems,
       pendingItems,
-      completedItems,
+      cancelledItems,
       totals: {
         ready: readyTotal,
         pending: pendingTotal,
-        completed: completedTotal,
+        cancelled: cancelledTotal,
         overall: orderResponse.totalPrice
       }
     }
