@@ -373,9 +373,34 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   });
 });
 
+// ✅ Get count of orders with pending items by webID
+const getPendingOrderCountByWebID = asyncHandler(async (req, res) => {
+  const { webID } = req.body;
+  if (!webID) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Missing webID"
+    });
+  }
+
+  // Find orders for this webID that have at least one pending item
+  const orders = await Order.find({ webID }).select('items');
+  const pendingOrderCount = orders.filter(order =>
+    order.items.some(item => item.status === 'pending')
+  ).length;
+
+  res.status(200).json({
+    statusCode: 200,
+    success: true,
+    pendingOrderCount
+  });
+});
+
 module.exports = {
   createOrder,
   getOrders,
   getCurrentOrderForTable,
   updateOrderPaymentStatus,
+  getPendingOrderCountByWebID,
 };

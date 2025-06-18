@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { createOrder, getOrders, getCurrentOrderForTable, updateOrderPaymentStatus } = require("../controllers/orderController");
+const { createOrder, getOrders, getCurrentOrderForTable, updateOrderPaymentStatus, getPendingOrderCountByWebID } = require("../controllers/orderController");
 
 /**
  * @swagger
@@ -90,5 +90,7 @@ router.post("/getcurrentorder", getCurrentOrderForTable);
  *         description: Order payment status updated successfully
  */
 router.post("/payment-status", updateOrderPaymentStatus);
+
+router.post("/pending-order-count", getPendingOrderCountByWebID);
 
 module.exports = router;
