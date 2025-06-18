@@ -165,7 +165,7 @@ const getOrders = asyncHandler(async (req, res) => {
 
   const orders = await Order.find({ webID: numericWebID })
     .populate("items.foodId", "foodName price")
-    .populate("tableId", "tableId type status");
+    .populate("tableId", "type status people tableId");
 
   if (!orders.length) {
     return res.status(200).json({
