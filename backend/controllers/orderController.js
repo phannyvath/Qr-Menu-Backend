@@ -168,7 +168,7 @@ const getOrders = asyncHandler(async (req, res) => {
     const orderObj = order.toObject();
     const tableIdValue = orderObj.tableId?.tableId || orderObj.tableId;
     const readyItems = orderObj.items
-      .filter(item => item.status === 'ready')
+      .filter(item => item.status === 'ready' || item.status === 'completed')
       .map(item => ({
         ...item,
         totalPrice: (item.foodId?.price || 0) * (item.quantity || 0)
