@@ -330,8 +330,14 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
     order.paymentStatus = paymentStatus;
     
     if (paymentStatus === 'paid') {
-      // Only set order.status to completed, do not change item statuses
+      // Set order.status to completed
       order.status = 'completed';
+      // Mark all pending or ready items as completed
+      order.items.forEach(item => {
+        if (item.status === 'pending' || item.status === 'ready') {
+          item.status = 'completed';
+        }
+      });
       statusMessage = 'Order completed and paid successfully';
       if (order.tableId) {
         await Table.findByIdAndUpdate(order.tableId._id, { status: 'available' });
