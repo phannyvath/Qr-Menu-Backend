@@ -191,6 +191,9 @@ const getOrders = asyncHandler(async (req, res) => {
   });
 
   res.status(200).json({
+    statusCode: 200,
+    success: true,
+    message: "Orders fetched successfully",
     orders: formattedOrders
   });
 });
@@ -235,6 +238,9 @@ const getCurrentOrderForTable = asyncHandler(async (req, res) => {
     }));
 
   res.status(200).json({
+    statusCode: 200,
+    success: true,
+    message: "Order fetched successfully",
     orderCode: orderObj.orderCode,
     webID: orderObj.webID,
     tableId: tableIdValue,
