@@ -87,7 +87,9 @@ const createOrder = asyncHandler(async (req, res) => {
     // Calculate new total price based on pending items only
     const pendingItems = order.items.filter(item => item.status === 'pending');
     order.totalPrice = pendingItems.reduce((total, item) => {
-      return total + (item.foodId.price * item.quantity);
+      const price = item.foodId?.price || 0;
+      const quantity = item.quantity || 0;
+      return total + (price * quantity);
     }, 0);
 
     await order.save();
@@ -119,7 +121,9 @@ const createOrder = asyncHandler(async (req, res) => {
   // Calculate separate totals
   const calculateTotal = (items) => {
     return items.reduce((total, item) => {
-      return total + (item.foodId.price * item.quantity);
+      const price = item.foodId?.price || 0;
+      const quantity = item.quantity || 0;
+      return total + (price * quantity);
     }, 0);
   };
 
@@ -377,7 +381,9 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   // Calculate separate totals
   const calculateTotal = (items) => {
     return items.reduce((total, item) => {
-      return total + (item.foodId.price * item.quantity);
+      const price = item.foodId?.price || 0;
+      const quantity = item.quantity || 0;
+      return total + (price * quantity);
     }, 0);
   };
 
