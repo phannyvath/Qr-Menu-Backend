@@ -180,10 +180,41 @@ const updateTableStatus = asyncHandler(async (req, res) => {
   });
 });
 
+// ✅ Get a single table's status by tableId
+const getTableStatus = asyncHandler(async (req, res) => {
+  const { tableId } = req.body;
+
+  if (!tableId) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "tableId is required",
+    });
+  }
+
+  const table = await Table.findOne({ tableId }).select("tableId status");
+
+  if (!table) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Table not found",
+    });
+  }
+
+  res.status(200).json({
+    statusCode: 200,
+    success: true,
+    message: "Table status fetched successfully",
+    table,
+  });
+});
+
 module.exports = {
   createTable,
   getAllTables,
   updateTable,
   deleteTable,
   updateTableStatus,
+  getTableStatus,
 };
