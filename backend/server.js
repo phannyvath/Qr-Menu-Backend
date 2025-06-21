@@ -68,6 +68,18 @@ app.use("/api/upload", require("./routes/uploadRoutes"));
 // Serve uploads directory
 app.use('/uploads', express.static(__dirname + '/uploads'));
 
+// Ping endpoint to keep server awake
+app.get("/ping", (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`Ping received at ${timestamp}`.cyan);
+  res.status(200).json({ 
+    message: "Server is awake!", 
+    timestamp,
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+});
+
 // Custom error handler middleware
 app.use(errorHandler);
 
@@ -107,6 +119,40 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Start the server
-app.listen(port, () =>
-  console.log(`Server started on port ${port}`.brightGreen)
-);
+app.listen(port, () => {
+  console.log(`Server started on port ${port}`.brightGreen);
+  
+  // Start the ping job to keep server awake
+  startPingJob();
+});
+
+// Function to ping the server every 10 minutes
+function startPingJob() {
+  const pingInterval = 10 * 60 * 1000; // 10 minutes in milliseconds
+  const serverUrl = process.env.BASE_URL || `http://localhost:${port}`;
+  
+  console.log(`Starting ping job to keep server awake at ${serverUrl}`.yellow);
+  
+  // Ping immediately when server starts
+  pingServer(serverUrl);
+  
+  // Set up interval to ping every 10 minutes
+  setInterval(() => {
+    pingServer(serverUrl);
+  }, pingInterval);
+}
+
+// Function to ping the server
+async function pingServer(serverUrl) {
+  try {
+    const response = await fetch(`${serverUrl}/ping`);
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`✅ Server pinged successfully at ${new Date().toISOString()}`.green);
+    } else {
+      console.log(`❌ Ping failed with status: ${response.status}`.red);
+    }
+  } catch (error) {
+    console.log(`❌ Ping error: ${error.message}`.red);
+  }
+}
