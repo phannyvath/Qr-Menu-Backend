@@ -293,6 +293,9 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
       }
     });
 
+    // Update order status to match the new item status
+    order.status = status;
+
     // Then, combine items with same foodId and status
     const combinedItems = [];
     const processedIds = new Set();
@@ -369,7 +372,7 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     statusCode: 200,
-    message: statusMessage || "Order updated successfully"
+    message: statusMessage || "Order updated successfully",
   });
 });
 
