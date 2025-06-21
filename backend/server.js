@@ -54,6 +54,7 @@ app.use("/api", require("./routes/orderRoutes")); // Your order routes
 app.use("/api/payment", require("./routes/paymentRoutes")); // New payment routes
 app.use("/api/categories", require("./routes/categoryRoutes")); // ✅ Add this line
 app.use("/api/tables", require("./routes/tableRoutes"));
+app.use("/api/upload", require("./routes/uploadRoutes"));
 
 // Serve uploads directory
 app.use('/uploads', express.static(__dirname + '/uploads'));
