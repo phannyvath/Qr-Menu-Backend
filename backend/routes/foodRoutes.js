@@ -20,7 +20,7 @@ router.post("/owner", protect, getFoodsByOwner);
 router.post("/by-webid", getFoodsByWebID);
 
 // Public food status endpoint (no authentication required)
-router.get("/status", getFoodsByWebID);
+router.post("/status", getFoodsByWebID);
 
 // Update operations via payload
 router.post("/update", protect, updateFood);
