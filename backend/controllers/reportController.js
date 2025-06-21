@@ -442,11 +442,113 @@ const getCustomerBehaviorReport = asyncHandler(async (req, res) => {
   });
 });
 
+// Get dashboard data
+const getDashboardData = asyncHandler(async (req, res) => {
+  const { webID, period = 'last8days' } = req.body;
+
+  if (!webID) {
+    return res.status(200).json({
+      statusCode: 201,
+      success: false,
+      message: "Missing webID",
+    });
+  }
+
+  let startDate, endDate;
+  let prevStartDate, prevEndDate;
+
+  // Set date ranges based on period
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  if (period === 'last8days') {
+    endDate = new Date(today);
+    startDate = new Date(today);
+    startDate.setDate(today.getDate() - 7);
+    startDate.setHours(0, 0, 0, 0);
+
+    prevEndDate = new Date(startDate);
+    prevEndDate.setDate(prevEndDate.getDate() - 1);
+    prevEndDate.setHours(23, 59, 59, 999);
+    prevStartDate = new Date(prevEndDate);
+    prevStartDate.setDate(prevEndDate.getDate() - 7);
+    prevStartDate.setHours(0, 0, 0, 0);
+  }
+
+  // Helper function to get sales data
+  const getSalesData = async (start, end) => {
+    const orders = await Order.find({
+      webID,
+      paymentStatus: 'paid',
+      createdAt: { $gte: start, $lte: end }
+    });
+
+    const totalSales = orders.reduce((sum, order) => sum + order.totalPrice, 0);
+    const totalOrders = orders.length;
+
+    return { totalSales, totalOrders, orders };
+  };
+
+  const currentPeriodData = await getSalesData(startDate, endDate);
+  const previousPeriodData = await getSalesData(prevStartDate, prevEndDate);
+
+  // Calculate percentage change
+  const salesChange = previousPeriodData.totalSales > 0 ?
+    ((currentPeriodData.totalSales - previousPeriodData.totalSales) / previousPeriodData.totalSales) * 100 :
+    currentPeriodData.totalSales > 0 ? 100 : 0;
+
+  const ordersChange = previousPeriodData.totalOrders > 0 ?
+    ((currentPeriodData.totalOrders - previousPeriodData.totalOrders) / previousPeriodData.totalOrders) * 100 :
+    currentPeriodData.totalOrders > 0 ? 100 : 0;
+
+  // Revenue analytics for chart
+  const revenueAnalytics = {};
+  currentPeriodData.orders.forEach(order => {
+    const date = order.createdAt.toISOString().split('T')[0];
+    if (!revenueAnalytics[date]) {
+      revenueAnalytics[date] = 0;
+    }
+    revenueAnalytics[date] += order.totalPrice;
+  });
+
+  // Fill in missing dates with 0 sales
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dateString = d.toISOString().split('T')[0];
+    if (!revenueAnalytics[dateString]) {
+      revenueAnalytics[dateString] = 0;
+    }
+  }
+  
+  // Sort analytics by date
+  const sortedRevenueAnalytics = Object.entries(revenueAnalytics)
+    .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
+    .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+
+
+  res.status(200).json({
+    statusCode: 200,
+    success: true,
+    message: "Dashboard data retrieved successfully",
+    data: {
+      totalSales: {
+        value: currentPeriodData.totalSales,
+        change: salesChange.toFixed(2)
+      },
+      totalOrders: {
+        value: currentPeriodData.totalOrders,
+        change: ordersChange.toFixed(2)
+      },
+      revenueAnalytics: sortedRevenueAnalytics
+    }
+  });
+});
+
 module.exports = {
   getSalesReport,
   getTableUtilizationReport,
   getPopularItemsReport,
   getHourlySalesReport,
   getCategoryPerformanceReport,
-  getCustomerBehaviorReport
+  getCustomerBehaviorReport,
+  getDashboardData
 }; 

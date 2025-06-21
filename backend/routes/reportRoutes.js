@@ -6,7 +6,8 @@ const {
   getPopularItemsReport,
   getHourlySalesReport,
   getCategoryPerformanceReport,
-  getCustomerBehaviorReport
+  getCustomerBehaviorReport,
+  getDashboardData
 } = require("../controllers/reportController");
 
 /**
@@ -194,5 +195,31 @@ router.post("/category-performance", getCategoryPerformanceReport);
  *         description: Customer behavior report generated successfully
  */
 router.post("/customer-behavior", getCustomerBehaviorReport);
+
+/**
+ * @swagger
+ * /api/report/dashboard:
+ *   post:
+ *     tags: [Reports]
+ *     summary: Get dashboard data
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - webID
+ *             properties:
+ *               webID:
+ *                 type: string
+ *               period:
+ *                 type: string
+ *                 default: 'last8days'
+ *     responses:
+ *       200:
+ *         description: Dashboard data retrieved successfully
+ */
+router.post("/dashboard", getDashboardData);
 
 module.exports = router; 
