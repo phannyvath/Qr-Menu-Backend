@@ -24,14 +24,18 @@ const uploadImage = asyncHandler(async (req, res) => {
     const fileUrl = `/uploads/${req.file.filename}`;
     
     res.status(200).json({ 
-      success: true, 
-      fileUrl,
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      size: req.file.size,
-      mimetype: req.file.mimetype,
-      storagePath: req.file.path,
-      accessUrl: `${req.protocol}://${req.get('host')}${fileUrl}`
+      success: true,
+      statusCode: 200,
+      message: "Image uploaded successfully",
+      data: {
+        fileUrl,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        storagePath: req.file.path,
+        accessUrl: `${req.protocol}://${req.get('host')}${fileUrl}`
+      }
     });
   } catch (error) {
     console.error('Upload error:', error);
@@ -52,8 +56,9 @@ const getStorageInfo = asyncHandler(async (req, res) => {
     if (!fs.existsSync(uploadsDir)) {
       return res.status(200).json({
         success: true,
+        statusCode: 200,
         message: 'Uploads directory does not exist yet',
-        storageInfo: {
+        data: {
           directory: uploadsDir,
           exists: false,
           fileCount: 0,
@@ -91,8 +96,9 @@ const getStorageInfo = asyncHandler(async (req, res) => {
 
     res.status(200).json({
       success: true,
+      statusCode: 200,
       message: 'Storage information retrieved successfully',
-      storageInfo: {
+      data: {
         directory: uploadsDir,
         exists: true,
         fileCount: files.length,
