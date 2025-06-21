@@ -145,25 +145,12 @@ Qr-Menu-Backend/
    npm install
    ```
 
-3. **Environment Configuration**
-   Create a `.env` file in the root directory:
-   ```env
-   PORT=5000
-   MONGODB_URI=your_mongodb_connection_string
-   JWT_SECRET=your_jwt_secret_key
-   STRIPE_SECRET_KEY=your_stripe_secret_key
-   CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-   CLOUDINARY_API_KEY=your_cloudinary_api_key
-   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
-   BASE_URL=http://localhost:5000
-   ```
-
-4. **Start the development server**
+3. **Start the development server**
    ```bash
    npm run server
    ```
 
-5. **Start the production server**
+4. **Start the production server**
    ```bash
    npm start
    ```
@@ -227,18 +214,6 @@ This application is optimized for deployment on Render:
 1. Connect your GitHub repository to Render
 2. Set environment variables in Render dashboard
 3. Deploy automatically on push to main branch
-
-### Environment Variables for Production
-```env
-PORT=10000
-MONGODB_URI=your_production_mongodb_uri
-JWT_SECRET=your_secure_jwt_secret
-STRIPE_SECRET_KEY=your_stripe_secret_key
-CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
-BASE_URL=https://your-app-name.onrender.com
-```
 
 ## 🔒 Security Features
 
