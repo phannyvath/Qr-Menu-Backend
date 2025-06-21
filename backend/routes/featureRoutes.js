@@ -1,8 +1,10 @@
 // routes/featureRoutes.js
 const express = require("express");
 const router = express.Router();
-const { getAllFeatures, createFeature, updateFeature, deleteFeature } = require("../controllers/featureController");
+const { getAllFeatures, createFeature, updateFeature, deleteFeature, uploadImage } = require("../controllers/featureController");
 const { protect } = require("../middleware/authMiddleware");
+const multer = require('multer');
+const path = require('path');
 
 /**
  * @swagger
@@ -78,5 +80,19 @@ router.post("/delete/:id", protect, deleteFeature);
  *       200:
  *         description: Feature deleted
  */
+
+// Set up multer for local storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../uploads/'));
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage });
+
+// Image upload route
+router.post('/upload/image', upload.single('image'), uploadImage);
 
 module.exports = router;
