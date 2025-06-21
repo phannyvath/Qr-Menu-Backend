@@ -64,6 +64,7 @@ app.use("/api/payment", require("./routes/paymentRoutes")); // New payment route
 app.use("/api/categories", require("./routes/categoryRoutes")); // ✅ Add this line
 app.use("/api/tables", require("./routes/tableRoutes"));
 app.use("/api/upload", require("./routes/uploadRoutes"));
+app.use("/api/report", require("./routes/reportRoutes"));
 
 // Serve uploads directory
 app.use('/uploads', express.static(__dirname + '/uploads'));
