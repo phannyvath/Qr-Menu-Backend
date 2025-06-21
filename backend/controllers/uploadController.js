@@ -12,29 +12,11 @@ const uploadImage = asyncHandler(async (req, res) => {
       });
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(req.file.mimetype)) {
-      // Delete the uploaded file if it's not an image
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-      return res.status(400).json({ 
+    // Verify file exists on disk
+    if (!fs.existsSync(req.file.path)) {
+      return res.status(500).json({ 
         success: false, 
-        message: 'Only image files are allowed (JPEG, PNG, GIF, WebP)' 
-      });
-    }
-
-    // Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (req.file.size > maxSize) {
-      // Delete the uploaded file if it's too large
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-      return res.status(400).json({ 
-        success: false, 
-        message: 'File size too large. Maximum size is 5MB' 
+        message: 'File was not saved properly' 
       });
     }
 
@@ -55,7 +37,8 @@ const uploadImage = asyncHandler(async (req, res) => {
     console.error('Upload error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Error uploading file' 
+      message: 'Error uploading file',
+      error: error.message
     });
   }
 });
@@ -92,7 +75,7 @@ const getStorageInfo = asyncHandler(async (req, res) => {
       
       fileInfo.push({
         filename,
-        originalName: filename.replace(/^\d+-/, ''), // Remove timestamp prefix
+        originalName: filename.replace(/^\d+_/, ''), // Remove timestamp prefix
         size: stats.size,
         sizeFormatted: formatFileSize(stats.size),
         uploadDate: stats.birthtime,

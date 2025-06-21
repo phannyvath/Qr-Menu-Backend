@@ -9,6 +9,7 @@ const { uploadImage, getStorageInfo } = require("../controllers/uploadController
 const uploadsDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('Created uploads directory:', uploadsDir);
 }
 
 // Set up multer for local storage
@@ -21,17 +22,71 @@ const storage = multer.diskStorage({
     cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
-    // Clean filename to avoid special characters
-    const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    // Get file extension
+    const ext = path.extname(file.originalname).toLowerCase();
+    
+    // Create a clean filename with only alphanumeric characters
+    const cleanName = file.originalname
+      .replace(/\.[^/.]+$/, '') // Remove extension
+      .replace(/[^a-zA-Z0-9]/g, '_') // Replace all non-alphanumeric with underscore
+      .replace(/_+/g, '_') // Replace multiple underscores with single
+      .replace(/^_|_$/g, '') // Remove leading/trailing underscores
+      .substring(0, 50); // Limit length
+    
+    // If cleanName is empty, use 'image'
+    const finalName = cleanName || 'image';
+    
     const timestamp = Date.now();
-    cb(null, `${timestamp}-${cleanName}`);
+    const filename = `${timestamp}_${finalName}${ext}`;
+    
+    console.log('Generated filename:', filename);
+    cb(null, filename);
   }
 });
 
-const upload = multer({ storage });
+// Add file filter to only allow images
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed'), false);
+  }
+};
+
+const upload = multer({ 
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
+
+// Error handling middleware for multer
+const handleMulterError = (error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        message: 'File too large. Maximum size is 5MB'
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      message: 'File upload error: ' + error.message
+    });
+  } else if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+  next();
+};
 
 // Image upload route
-router.post('/image', upload.single('image'), uploadImage);
+router.post('/image', upload.single('image'), handleMulterError, uploadImage);
 
 // Get storage information route
 router.get('/storage', getStorageInfo);
