@@ -4,12 +4,21 @@ const dotenv = require("dotenv").config();
 const { errorHandler } = require("./middleware/errorMiddleware");
 const connectDB = require("./config/db");
 const cors = require("cors");
+const fs = require('fs');
+const path = require('path');
 const port = process.env.PORT || 5000;
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
 // Connect to the database
 connectDB();
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('Created uploads directory'.green);
+}
 
 // Initialize express
 const app = express();
